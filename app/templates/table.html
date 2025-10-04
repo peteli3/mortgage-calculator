@@ -8,65 +8,6 @@
     <button class="btn btn-primary my-4" onclick="openAddModal()">
         Add Item
     </button>
-    <dialog id="addModal" class="modal">
-        <div class="modal-box">
-            <h2 class="text-lg font-bold mb-4">Add New Item</h2>
-            <form
-                hx-post="/table/add_item"
-                hx-target="#itemsTable"
-                hx-swap="innerHTML"
-                hx-ext="json-enc"
-                hx-on::after-request="if (event.detail.successful) resetAddForm(this); else openErrorModal()"
-            >
-                <div class="grid grid-cols-[1fr_2fr] gap-4 mb-4">
-                    <div class="flex flex-col space-y-4">
-                        <label for="name" class="label label-text h-10">Name:</label>
-                        <label for="category" class="label label-text h-10">Category:</label>
-                        <label for="value" class="label label-text h-10">Value:</label>
-                        <label for="description" class="label label-text h-10">Description:</label>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="form-control">
-                            <input type="text"
-                                   id="name"
-                                   name="name"
-                                   placeholder="Name"
-                                   required
-                                   class="input input-bordered">
-                        </div>
-                        <div class="form-control">
-                            <select id="category" name="category" required class="select select-bordered">
-                                <option value="" disabled selected>Select Category</option>
-                                {% for category in categories %}
-                                <option value="{{ category }}">{{ category }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-control">
-                            <input type="number"
-                                   id="value"
-                                   name="value"
-                                   placeholder="Value"
-                                   required
-                                   class="input input-bordered">
-                        </div>
-                        <div class="form-control">
-                            <input type="text"
-                                   id="description"
-                                   name="description"
-                                   placeholder="Description"
-                                   required
-                                   class="input input-bordered">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-action">
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                    <button type="button" onclick="closeAddModal()" class="btn">Close</button>
-                </div>
-            </form>
-        </div>
-    </dialog>
     <div id="itemsTable" class="overflow-x-auto mt-4" hx-swap-oob="true">
         <table class="table">
             <thead>
@@ -116,6 +57,65 @@
     </div>
     {% endif %}
 </div>
+<dialog id="addModal" class="modal">
+    <div class="modal-box">
+        <h2 class="text-lg font-bold mb-4">Add New Item</h2>
+        <form
+            hx-post="/table/add_item"
+            hx-target="#itemsTable"
+            hx-swap="innerHTML"
+            hx-ext="json-enc"
+            hx-on::after-request="if (event.detail.successful) resetAddForm(this); else openErrorModal()"
+        >
+            <div class="grid grid-cols-[1fr_2fr] gap-4 mb-4">
+                <div class="flex flex-col space-y-4">
+                    <label for="name" class="label label-text h-10">Name:</label>
+                    <label for="category" class="label label-text h-10">Category:</label>
+                    <label for="value" class="label label-text h-10">Value:</label>
+                    <label for="description" class="label label-text h-10">Description:</label>
+                </div>
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               placeholder="Name"
+                               required
+                               class="input input-bordered">
+                    </div>
+                    <div class="form-control">
+                        <select id="category" name="category" required class="select select-bordered">
+                            <option value="" disabled selected>Select Category</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <input type="number"
+                               id="value"
+                               name="value"
+                               placeholder="Value"
+                               required
+                               class="input input-bordered">
+                    </div>
+                    <div class="form-control">
+                        <input type="text"
+                               id="description"
+                               name="description"
+                               placeholder="Description"
+                               required
+                               class="input input-bordered">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Submit</button>
+                <button type="button" onclick="closeAddModal()" class="btn">Close</button>
+            </div>
+        </form>
+    </div>
+</dialog>
 <dialog id="deleteModal" class="modal">
     <div class="modal-box">
         <h2 class="text-lg font-bold mb-4">Confirm Deletion</h2>
