@@ -1,4 +1,4 @@
-# fastapi-example
+# mortgage-calculator
 
 Usual operation:
 ```bash

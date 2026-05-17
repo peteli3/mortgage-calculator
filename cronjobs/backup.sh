@@ -5,7 +5,7 @@ DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_NAME=appdb_${DATE}
 BACKUP_FILE="${BACKUP_DIR}/${BACKUP_NAME}.sql.gz"
 REGION="us-lax-1"
-BUCKET="fastapi-example-backups"
+BUCKET="mortgage-calculator-backups"
 
 echo "Cleaning up old backups from volume (keep if < 7 days old)..."
 find "$BACKUP_DIR" -type f -mtime +7 -name "appdb_*.sql.gz" -exec rm {} \;
