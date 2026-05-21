@@ -11,6 +11,7 @@ from .internal.common import templates, VERSION, GIT_COMMIT
 from .internal.authentication import require_auth
 from .routers.table import router as table_router
 from .routers.basic import router as basic_router
+from .routers.mortgage import router as mortgage_router
 from .middleware.session import SessionMiddleware
 
 db = DB()
@@ -20,6 +21,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(table_router, dependencies=[Depends(require_auth)])
 app.include_router(basic_router)
+app.include_router(mortgage_router)
 app.add_middleware(SessionMiddleware, db=db)
 
 @app.get("/version")

@@ -2,5 +2,5 @@
 @source "../templates/*.html";
 @import "tailwindcss";
 @plugin "../../daisyui.js" {
-    themes: night --default;
+    themes: luxury --default;
 }

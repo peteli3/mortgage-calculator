@@ -1,33 +1,1162 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Mortgage Calculator{% endblock %}
 
 {% block content %}
-<div class="hero min-h-screen">
-    <div class="hero-content text-center">
-        <div class="max-w-md">
-            <h1 class="text-5xl font-bold">Hello there</h1>
-            <p class="py-6">
-                Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem
-                quasi. In deleniti eaque aut repudiandae et a id nisi.
-            </p>
-            <button class="btn btn-primary" onclick="showLoginModal()">Get Started</button>
-        </div>
+<style>
+    body.edit-modal-open > div {
+        filter: blur(4px);
+        pointer-events: none;
+        user-select: none;
+        transition: filter 0.15s ease;
+    }
+</style>
+<div class="m-2 w-full">
+    <div class="flex flex-row gap-2 items-start w-full">
+        <aside class="w-72 shrink-0 space-y-2">
+            <h2 class="text-xl font-bold my-4 mx-2">New Loan</h2>
+
+            <div id="pdf-drop-zone"
+                 class="mx-2 my-4 border-2 border-dashed border-success/50 bg-success/5 rounded-lg p-4 text-center cursor-pointer transition-colors select-none"
+                 title="Click or drop a PDF to import a Loan Estimate">
+                <input type="file" id="pdf-file-input" accept="application/pdf" class="hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-1.5 w-7 h-7 text-success/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M4.5 19.5h15A2.25 2.25 0 0021.75 17.25V6.75A2.25 2.25 0 0019.5 4.5H8.379a1.5 1.5 0 01-1.06-.44L5.56 2.31A1.5 1.5 0 004.5 1.875H3A2.25 2.25 0 00.75 4.125v15A2.25 2.25 0 003 21.375h18" />
+                </svg>
+                <p class="font-medium text-sm">Upload Loan Estimate</p>
+                <p class="text-xs text-base-content/50 mt-0.5">Drop a PDF or <span class="underline text-base-content/60">browse</span></p>
+                <p id="pdf-drop-status" class="text-xs mt-1.5 hidden"></p>
+            </div>
+
+            <div class="divider my-2 text-base-content/60">OR</div>
+
+            <form class="m-2 space-y-3" autocomplete="off">
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="name" class="label-text font-medium whitespace-nowrap">Name</label>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               placeholder="Nickname for loan"
+                               class="input input-bordered input-sm w-full">
+
+                        <label for="loan_amount" class="label-text font-medium whitespace-nowrap">Loan amount</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="loan_amount"
+                                   name="loan_amount"
+                                   placeholder="0"
+                                   class="grow min-w-0">
+                        </label>
+
+                        <label for="term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="term_years"
+                                   name="term_years"
+                                   placeholder="30"
+                                   min="1"
+                                   max="50"
+                                   step="1"
+                                   value="30"
+                                   class="grow min-w-0">
+                            <span class="text-base-content/60">yrs</span>
+                        </label>
+
+                        <label for="interest_rate" class="label-text font-medium whitespace-nowrap">Interest</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="interest_rate"
+                                   name="interest_rate"
+                                   placeholder="0.000"
+                                   class="grow min-w-0">
+                            <span class="text-base-content/60">%</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="points" class="label-text font-medium whitespace-nowrap">Points</label>
+                        <input type="text"
+                               inputmode="decimal"
+                               id="points"
+                               name="points"
+                               placeholder="0.000"
+                               class="input input-bordered input-sm w-full">
+
+                        <label for="net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="net_credits"
+                                   name="net_credits"
+                                   placeholder="0"
+                                   class="grow min-w-0">
+                        </label>
+
+                        <label for="net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="net_fees"
+                                   name="net_fees"
+                                   placeholder="0"
+                                   class="grow min-w-0">
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="prop_tax"
+                                   name="prop_tax"
+                                   placeholder="0"
+                                   class="grow min-w-0">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+
+                        <label for="hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="hoa"
+                                   name="hoa"
+                                   placeholder="0"
+                                   class="grow min-w-0">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+
+                        <label for="insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="insurance"
+                                   name="insurance"
+                                   placeholder="0"
+                                   class="grow min-w-0">
+                            <span class="text-base-content/60 text-xs">/yr</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="mx-2 my-4 flex gap-2">
+                    <button type="button" id="add-loan-btn" class="btn btn-primary flex-1">Add</button>
+                    <button type="button" id="clear-form-btn" class="btn btn-ghost flex-none">Clear</button>
+                </div>
+            </form>
+        </aside>
+
+        <section class="flex-1 min-w-0 mx-2 mb-2 space-y-2 overflow-x-auto">
+            <h2 class="text-xl font-bold my-4 mx-2">Loans</h2>
+            <!-- Future: Years (N) input for total-paid column -->
+
+            <div class="m-2">
+                <table class="table table-zebra table-sm w-full">
+                    <thead>
+                        <tr>
+                            <th class="p-2 whitespace-nowrap cursor-pointer select-none" data-sort-key="name">Name </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="loan_amount">Loan Amount </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="interest">Interest </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="term_years">Term </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="pi">P&amp;I / mo </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="monthly_total">Total / mo </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="closing">Closing Costs </th>
+                            <th class="p-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="loans-tbody">
+                        <tr id="loans-empty">
+                            <td colspan="8" class="text-center text-base-content/60 p-4">
+                                No loans yet — add one manually or upload a loan estimate.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 </div>
+
+<div id="preview-panel" class="fixed z-40 w-fit min-w-[15rem] rounded-lg border border-base-content/20 bg-base-200 shadow-xl select-none" style="bottom: 5rem; right: 1.5rem;">
+    <div id="preview-panel-header" class="flex items-center justify-between px-3 py-2 cursor-grab border-b border-base-content/15 rounded-t-lg">
+        <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Preview</span>
+        <button id="preview-panel-toggle" class="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content px-1 min-h-0 h-auto leading-none" title="Minimize">
+            <svg id="preview-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9l6 6 6-6"/>
+            </svg>
+        </button>
+    </div>
+    <div id="preview-panel-body" class="px-3 py-2 grid grid-cols-[auto_auto] gap-x-4 gap-y-1.5 text-sm">
+        <span class="text-base-content/60 whitespace-nowrap">P&amp;I <span class="text-xs">/mo</span></span>
+        <span id="preview_pi" class="font-mono font-medium tabular-nums text-right">—</span>
+
+        <span class="text-base-content/60 whitespace-nowrap">Monthly total <span class="text-xs">/mo</span></span>
+        <span id="preview_monthly" class="font-mono font-medium tabular-nums text-right">—</span>
+
+        <span class="text-base-content/60 whitespace-nowrap">Due at closing</span>
+        <span id="preview_closing" class="font-mono font-medium tabular-nums text-right">—</span>
+
+        <span class="text-base-content/60 whitespace-nowrap">Paid after 1 yr</span>
+        <span id="preview_1yr" class="font-mono font-medium tabular-nums text-right">—</span>
+
+        <span class="text-base-content/60 whitespace-nowrap">Paid after 3 yrs</span>
+        <span id="preview_3yr" class="font-mono font-medium tabular-nums text-right">—</span>
+
+        <span class="text-base-content/60 whitespace-nowrap">Paid after 5 yrs</span>
+        <span id="preview_5yr" class="font-mono font-medium tabular-nums text-right">—</span>
+    </div>
+</div>
+
+<dialog id="edit-loan-modal" class="modal">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg mb-4">Edit Loan</h3>
+        <input type="hidden" id="edit_id">
+
+        <div class="space-y-3">
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="edit_name" class="label-text font-medium whitespace-nowrap">Name</label>
+                    <input type="text" id="edit_name" class="input input-bordered input-sm w-full" autocomplete="off">
+
+                    <label for="edit_loan_amount" class="label-text font-medium whitespace-nowrap">Loan amount</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="edit_loan_amount" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+
+                    <label for="edit_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="edit_term_years" min="1" max="50" step="1" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">yrs</span>
+                    </label>
+
+                    <label for="edit_interest" class="label-text font-medium whitespace-nowrap">Interest</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="text" inputmode="decimal" id="edit_interest" placeholder="0.000" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="edit_points" class="label-text font-medium whitespace-nowrap">Points</label>
+                    <input type="text" inputmode="decimal" id="edit_points" placeholder="0.000" class="input input-bordered input-sm w-full" autocomplete="off">
+
+                    <label for="edit_net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="edit_net_credits" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+
+                    <label for="edit_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="edit_net_fees" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="edit_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="edit_prop_tax" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="edit_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="edit_hoa" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="edit_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="edit_insurance" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/yr</span>
+                    </label>
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="modal-action mt-4">
+            <button id="edit-save-btn" class="btn btn-primary btn-sm">Save</button>
+            <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
+        </div>
+    </div>
+
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+<dialog id="confirm-delete-modal" class="modal">
+    <div class="modal-box max-w-xs">
+        <h3 class="font-bold text-lg mb-1">Remove loan?</h3>
+        <p class="text-base-content/70 text-sm mb-4">
+            <span id="confirm-delete-name" class="font-semibold text-base-content"></span> will be permanently removed.
+        </p>
+        <div class="modal-action mt-0">
+            <button id="confirm-delete-btn" class="btn btn-error btn-sm">Remove</button>
+            <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="pdf-import-modal" class="modal">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg mb-1">Review PDF Import</h3>
+        <p class="text-xs text-base-content/50 mb-4">Values extracted from the PDF — review and edit before adding.</p>
+
+        <div class="space-y-3">
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="pdf_name" class="label-text font-medium whitespace-nowrap">Name</label>
+                    <input type="text" id="pdf_name" class="input input-bordered input-sm w-full" autocomplete="off">
+
+                    <label for="pdf_loan_amount" class="label-text font-medium whitespace-nowrap">Loan amount</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="pdf_loan_amount" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+
+                    <label for="pdf_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="pdf_term_years" min="1" max="50" step="1" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">yrs</span>
+                    </label>
+
+                    <label for="pdf_interest" class="label-text font-medium whitespace-nowrap">Interest</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="text" inputmode="decimal" id="pdf_interest" placeholder="0.000" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="pdf_points" class="label-text font-medium whitespace-nowrap">Points</label>
+                    <input type="text" inputmode="decimal" id="pdf_points" placeholder="0.000" class="input input-bordered input-sm w-full" autocomplete="off">
+
+                    <label for="pdf_net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="pdf_net_credits" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+
+                    <label for="pdf_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="pdf_net_fees" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="pdf_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="pdf_prop_tax" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="pdf_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="pdf_hoa" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="pdf_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="pdf_insurance" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/yr</span>
+                    </label>
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="modal-action mt-4">
+            <button id="pdf-import-confirm-btn" class="btn btn-primary btn-sm">Add Loan</button>
+            <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Check if the URL contains show_login parameter and show the login modal
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('show_login')) {
-            const loginModal = document.getElementById('loginModal');
-            if (loginModal) {
-                loginModal.showModal();
+    // ── Dollar inputs: comma formatting as-you-type ───────────────────────────
+    function applyCommaFormat(input) {
+        var raw = input.value.replace(/[^0-9]/g, '');
+        var digitsRight = input.value.slice(input.selectionStart).replace(/[^0-9]/g, '').length;
+        var formatted = raw ? Number(raw).toLocaleString('en-US') : '';
+        input.value = formatted;
+        if (digitsRight === 0) {
+            input.setSelectionRange(formatted.length, formatted.length);
+        } else {
+            var count = 0;
+            var pos = formatted.length;
+            for (var i = formatted.length - 1; i >= 0; i--) {
+                if (/[0-9]/.test(formatted[i])) {
+                    count++;
+                    if (count === digitsRight) { pos = i; break; }
+                }
+            }
+            input.setSelectionRange(pos, pos);
+        }
+    }
+
+    function fmtDollarField(val) {
+        return val > 0 ? Number(val).toLocaleString('en-US') : '';
+    }
+
+    document.querySelectorAll('input[inputmode="numeric"]').forEach(function(el) {
+        el.addEventListener('input', function() { applyCommaFormat(this); });
+    });
+
+    // ── Decimal inputs: right-to-left digit entry, fixed 3 decimal places ──────
+    // Digits are stored in data-digits (no decimal point). The display is always
+    // derived as intPart.decPart where decPart is the last 3 digits.
+    // e.g. typing 5,6,2,5 → "0.005" → "0.056" → "0.562" → "5.625"
+    function renderDecimalInput(input) {
+        var digits = input.dataset.digits || '';
+        if (!digits) { input.value = ''; return; }
+        var padded   = digits.padStart(3, '0');
+        var intPart  = padded.length > 3 ? padded.slice(0, padded.length - 3) : '0';
+        var decPart  = padded.slice(-3);
+        input.value  = intPart + '.' + decPart;
+    }
+
+    function setDecimalInput(input, val) {
+        var num = parseFloat(val);
+        if (!num || isNaN(num) || num <= 0) {
+            input.dataset.digits = '';
+            input.value = '';
+            return;
+        }
+        var str = num.toFixed(3).replace('.', '').replace(/^0+/, '');
+        input.dataset.digits = str || '';
+        renderDecimalInput(input);
+    }
+
+    document.querySelectorAll('input[inputmode="decimal"]').forEach(function(el) {
+        el.dataset.digits = '';
+
+        el.addEventListener('keydown', function(e) {
+            // Let Tab, arrows, home/end pass through
+            if (e.key === 'Tab' || e.key.startsWith('Arrow') ||
+                e.key === 'Home' || e.key === 'End') return;
+
+            // Cmd/Ctrl + Backspace or Delete clears the whole field
+            if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
+                e.preventDefault();
+                this.dataset.digits = '';
+                this.value = '';
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
+
+            // Let other Ctrl/Cmd shortcuts (copy, paste, select-all, undo…) pass through
+            if (e.ctrlKey || e.metaKey) return;
+
+            var digits = this.dataset.digits || '';
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                if (digits.length < 6) {
+                    this.dataset.digits = digits + e.key;
+                    renderDecimalInput(this);
+                    this.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                this.dataset.digits = digits.slice(0, -1);
+                renderDecimalInput(this);
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+            } else if (e.key === 'Delete') {
+                e.preventDefault();
+                this.dataset.digits = '';
+                this.value = '';
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+            } else {
+                e.preventDefault();
+            }
+        });
+
+        el.addEventListener('paste', function(e) {
+            e.preventDefault();
+            var text = (e.clipboardData || window.clipboardData).getData('text');
+            var pasted = text.replace(/[^0-9]/g, '').slice(0, 6);
+            this.dataset.digits = pasted;
+            renderDecimalInput(this);
+            this.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        // Safety net: resync data-digits if the field was modified externally
+        el.addEventListener('blur', function() {
+            var num = parseFloat(this.value);
+            if (!isNaN(num) && num > 0) {
+                setDecimalInput(this, num);
+            } else if (!this.value.trim()) {
+                this.dataset.digits = '';
+            }
+        });
+    });
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function fmtCurrency(val) {
+        if (!isFinite(val) || isNaN(val)) return '—';
+        var sign = val < 0 ? '-' : '';
+        return sign + '$' + Math.abs(Math.round(val)).toLocaleString();
+    }
+
+    // Returns { text, title } for preview panel values.
+    // Values >= $1B switch to e-notation (3 sig figs); title holds the full value
+    // for display in a hover tooltip, otherwise title is null.
+    function fmtPreview(val) {
+        if (!isFinite(val) || isNaN(val)) return { text: '—', title: null };
+        var rounded = Math.round(val);
+        var abs = Math.abs(rounded);
+        var sign = rounded < 0 ? '-' : '';
+        if (abs >= 1000000000) {
+            var full = sign + '$' + abs.toLocaleString();
+            return { text: sign + '$' + abs.toExponential(2), title: full };
+        }
+        return { text: sign + '$' + abs.toLocaleString(), title: null };
+    }
+
+    function setPreviewVal(id, show, val) {
+        var el = document.getElementById(id);
+        if (!show) { el.textContent = '—'; el.removeAttribute('title'); return; }
+        var r = fmtPreview(val);
+        el.textContent = r.text;
+        if (r.title) { el.title = r.title; } else { el.removeAttribute('title'); }
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function computePI(principal, annualRatePct, termYears) {
+        if (principal <= 0 || termYears <= 0) return 0;
+        if (annualRatePct <= 0) return principal / (termYears * 12);
+        var r = annualRatePct / 100 / 12;
+        var n = termYears * 12;
+        return principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    }
+
+    function readFormInputs() {
+        return {
+            name:        document.getElementById('name').value.trim(),
+            loan_amount: parseFloat(document.getElementById('loan_amount').value.replace(/,/g, ''))   || 0,
+            term_years:  parseFloat(document.getElementById('term_years').value)                      || 30,
+            interest:    parseFloat(document.getElementById('interest_rate').value)                   || 0,
+            points:      parseFloat(document.getElementById('points').value)                          || 0,
+            net_credits: parseFloat(document.getElementById('net_credits').value.replace(/,/g, ''))   || 0,
+            net_fees:    parseFloat(document.getElementById('net_fees').value.replace(/,/g, ''))      || 0,
+            prop_tax:    parseFloat(document.getElementById('prop_tax').value.replace(/,/g, ''))      || 0,
+            hoa:         parseFloat(document.getElementById('hoa').value.replace(/,/g, ''))           || 0,
+            insurance:   parseFloat(document.getElementById('insurance').value.replace(/,/g, ''))     || 0,
+        };
+    }
+
+    // ── Live preview (shared renderer) ───────────────────────────────────────
+    function renderPreview(loan_amount, interest, term_years, points, net_credits, net_fees, prop_tax, hoa, insurance) {
+        var pi           = computePI(loan_amount, interest, term_years);
+        var monthlyTotal = pi + prop_tax + hoa + (insurance / 12);
+        var closing      = (points / 100 * loan_amount) + net_fees - net_credits;
+        var show = loan_amount > 0;
+
+        setPreviewVal('preview_pi',      show, pi);
+        setPreviewVal('preview_monthly', show, monthlyTotal);
+        setPreviewVal('preview_closing', show, closing);
+        setPreviewVal('preview_1yr',     show, monthlyTotal * 12);
+        setPreviewVal('preview_3yr',     show, monthlyTotal * 36);
+        setPreviewVal('preview_5yr',     show, monthlyTotal * 60);
+    }
+
+    function updatePreview() {
+        var f = readFormInputs();
+        renderPreview(f.loan_amount, f.interest, f.term_years, f.points, f.net_credits, f.net_fees, f.prop_tax, f.hoa, f.insurance);
+    }
+
+    function updateEditPreview() {
+        renderPreview(
+            parseFloat(document.getElementById('edit_loan_amount').value.replace(/,/g, '')) || 0,
+            parseFloat(document.getElementById('edit_interest').value)                      || 0,
+            parseFloat(document.getElementById('edit_term_years').value)                    || 30,
+            parseFloat(document.getElementById('edit_points').value)                        || 0,
+            parseFloat(document.getElementById('edit_net_credits').value.replace(/,/g, '')) || 0,
+            parseFloat(document.getElementById('edit_net_fees').value.replace(/,/g, ''))    || 0,
+            parseFloat(document.getElementById('edit_prop_tax').value.replace(/,/g, ''))    || 0,
+            parseFloat(document.getElementById('edit_hoa').value.replace(/,/g, ''))         || 0,
+            parseFloat(document.getElementById('edit_insurance').value.replace(/,/g, ''))   || 0
+        );
+    }
+
+    document.querySelectorAll('#loan_amount, #term_years, #interest_rate, #points, #net_credits, #net_fees, #prop_tax, #hoa, #insurance')
+        .forEach(function(el) { el.addEventListener('input', updatePreview); });
+
+    document.querySelectorAll('#edit_loan_amount, #edit_term_years, #edit_interest, #edit_points, #edit_net_credits, #edit_net_fees, #edit_prop_tax, #edit_hoa, #edit_insurance')
+        .forEach(function(el) { el.addEventListener('input', updateEditPreview); });
+
+    document.getElementById('clear-form-btn').addEventListener('click', function() {
+        document.getElementById('name').value        = '';
+        document.getElementById('loan_amount').value = '';
+        document.getElementById('term_years').value  = '30';
+        // Decimal inputs keep state in dataset.digits — must use setDecimalInput
+        // to clear both the display value and the underlying digit buffer.
+        setDecimalInput(document.getElementById('interest_rate'), 0);
+        setDecimalInput(document.getElementById('points'),        0);
+        document.getElementById('net_credits').value = '';
+        document.getElementById('net_fees').value    = '';
+        document.getElementById('prop_tax').value    = '';
+        document.getElementById('hoa').value         = '';
+        document.getElementById('insurance').value   = '';
+        updatePreview();
+    });
+
+    // ── localStorage ─────────────────────────────────────────────────────────
+    var STORAGE_KEY = 'mortgage_loans';
+
+    function loadLoans() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        catch(e) { return []; }
+    }
+
+    function saveLoans(loans) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(loans));
+    }
+
+    // ── Table sort state ──────────────────────────────────────────────────────
+    var sortState = { col: null, dir: 1 };
+
+    // ── Table rendering ───────────────────────────────────────────────────────
+    function renderLoans() {
+        var loans = loadLoans();
+        var tbody = document.getElementById('loans-tbody');
+        var empty = document.getElementById('loans-empty');
+
+        tbody.querySelectorAll('tr:not(#loans-empty)').forEach(function(r) { r.remove(); });
+
+        if (loans.length === 0) {
+            empty.style.display = '';
+            updateSortHeaders();
+            return;
+        }
+        empty.style.display = 'none';
+
+        if (sortState.col) {
+            loans = loans.slice().sort(function(a, b) {
+                var av = a[sortState.col], bv = b[sortState.col];
+                if (typeof av === 'string') return av.localeCompare(bv) * sortState.dir;
+                return (av - bv) * sortState.dir;
+            });
+        }
+
+        loans.forEach(function(loan) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td class="p-2 font-medium whitespace-nowrap">'                        + escHtml(loan.name)                            + '</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.loan_amount)                 + '</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + loan.interest.toFixed(3)                      + '%</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + loan.term_years                               + ' yr</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.pi)                          + '</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.monthly_total)               + '</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.closing)                     + '</td>' +
+                '<td class="p-2 flex gap-1">' +
+                    '<button class="btn btn-primary btn-xs" data-edit-id="' + loan.id + '">Edit</button>' +
+                    '<button class="btn btn-error btn-xs" data-del-id="' + loan.id + '">Remove</button>' +
+                '</td>';
+            tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll('[data-edit-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openEditModal(Number(this.getAttribute('data-edit-id')));
+            });
+        });
+
+        tbody.querySelectorAll('[data-del-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                deleteLoan(Number(this.getAttribute('data-del-id')));
+            });
+        });
+
+        updateSortHeaders();
+    }
+
+    function updateSortHeaders() {
+        document.querySelectorAll('thead th[data-sort-key]').forEach(function(th) {
+            var key = th.getAttribute('data-sort-key');
+            th.querySelector('.sort-indicator') && th.querySelector('.sort-indicator').remove();
+            if (sortState.col === key) {
+                var span = document.createElement('span');
+                span.className = 'sort-indicator ml-1 opacity-70';
+                span.textContent = sortState.dir === 1 ? '▲' : '▼';
+                th.appendChild(span);
+            }
+        });
+    }
+
+    document.querySelectorAll('thead th[data-sort-key]').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var key = this.getAttribute('data-sort-key');
+            if (sortState.col === key) {
+                sortState.dir *= -1;
+            } else {
+                sortState.col = key;
+                sortState.dir = 1;
+            }
+            renderLoans();
+        });
+    });
+
+    // ── Add loan ──────────────────────────────────────────────────────────────
+    function addLoan() {
+        var f = readFormInputs();
+        if (f.name.length === 0) {
+            document.getElementById('name').focus();
+            showToast('Name must not be empty', 'error');
+            return;
+        }
+        if (f.loan_amount <= 0) {
+            document.getElementById('loan_amount').focus();
+            showToast('Loan amount must be positive', 'error');
+            return;
+        }
+
+        var loans = loadLoans();
+        var pi           = computePI(f.loan_amount, f.interest, f.term_years);
+        var monthlyTotal = pi + f.prop_tax + f.hoa + (f.insurance / 12);
+        var closing      = (f.points / 100 * f.loan_amount) + f.net_fees - f.net_credits;
+
+        loans.push({
+            id:            Date.now(),
+            name:          f.name || ('Loan ' + (loans.length + 1)),
+            loan_amount:   f.loan_amount,
+            term_years:    f.term_years,
+            interest:      f.interest,
+            points:        f.points,
+            net_credits:   f.net_credits,
+            net_fees:      f.net_fees,
+            prop_tax:      f.prop_tax,
+            hoa:           f.hoa,
+            insurance:     f.insurance,
+            pi:            pi,
+            monthly_total: monthlyTotal,
+            closing:       closing,
+        });
+        saveLoans(loans);
+        renderLoans();
+        showToast('\u2713 \u201c' + (f.name || 'Loan') + '\u201d added');
+
+        ['name','loan_amount','net_credits','net_fees','prop_tax','hoa','insurance']
+            .forEach(function(id) { document.getElementById(id).value = ''; });
+        setDecimalInput(document.getElementById('interest_rate'), 0);
+        setDecimalInput(document.getElementById('points'), 0);
+        document.getElementById('term_years').value = 30;
+        updatePreview();
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    function showToast(message, type) {
+        var alertClass = type === 'error' ? 'alert-error' : 'alert-success';
+        var wrap = document.createElement('div');
+        wrap.className = 'toast toast-top toast-end z-[999]';
+        wrap.innerHTML = '<div class="alert ' + alertClass + ' text-sm py-2 px-4">' + escHtml(message) + '</div>';
+        document.body.appendChild(wrap);
+        setTimeout(function() {
+            wrap.style.transition = 'opacity 0.4s';
+            wrap.style.opacity = '0';
+            setTimeout(function() { wrap.remove(); }, 400);
+        }, 2600);
+    }
+
+    // ── Delete loan ───────────────────────────────────────────────────────────
+    var _pendingDeleteId = null;
+
+    function deleteLoan(id) {
+        var loan = loadLoans().find(function(l) { return l.id === id; });
+        if (!loan) return;
+        _pendingDeleteId = id;
+        document.getElementById('confirm-delete-name').textContent = loan.name;
+        document.getElementById('confirm-delete-modal').showModal();
+    }
+
+    function confirmDelete() {
+        if (_pendingDeleteId === null) return;
+        saveLoans(loadLoans().filter(function(l) { return l.id !== _pendingDeleteId; }));
+        _pendingDeleteId = null;
+        renderLoans();
+        document.getElementById('confirm-delete-modal').close();
+    }
+
+    // ── Edit modal ────────────────────────────────────────────────────────────
+    function openEditModal(id) {
+        var loan = loadLoans().find(function(l) { return l.id === id; });
+        if (!loan) return;
+
+        document.getElementById('edit_id').value           = loan.id;
+        document.getElementById('edit_name').value         = loan.name;
+        document.getElementById('edit_loan_amount').value  = fmtDollarField(loan.loan_amount);
+        document.getElementById('edit_term_years').value   = loan.term_years;
+        setDecimalInput(document.getElementById('edit_interest'), loan.interest);
+        setDecimalInput(document.getElementById('edit_points'),   loan.points);
+        document.getElementById('edit_net_credits').value  = fmtDollarField(loan.net_credits);
+        document.getElementById('edit_net_fees').value     = fmtDollarField(loan.net_fees);
+        document.getElementById('edit_prop_tax').value     = fmtDollarField(loan.prop_tax);
+        document.getElementById('edit_hoa').value          = fmtDollarField(loan.hoa);
+        document.getElementById('edit_insurance').value    = fmtDollarField(loan.insurance);
+
+        var modal   = document.getElementById('edit-loan-modal');
+        var panel   = document.getElementById('preview-panel');
+        var backdrop = modal.querySelector('.modal-backdrop');
+        modal.insertBefore(panel, backdrop);
+        panel.style.bottom = '5rem';
+        panel.style.right  = '1.5rem';
+        panel.style.top    = 'auto';
+        panel.style.left   = 'auto';
+
+        modal.showModal();
+        document.body.classList.add('edit-modal-open');
+        updateEditPreview();
+    }
+
+    function saveEditLoan() {
+        var id          = Number(document.getElementById('edit_id').value);
+        var loan_amount = parseFloat(document.getElementById('edit_loan_amount').value.replace(/,/g, ''))  || 0;
+        var term_years  = parseFloat(document.getElementById('edit_term_years').value)                     || 30;
+        var interest    = parseFloat(document.getElementById('edit_interest').value)                       || 0;
+        var points      = parseFloat(document.getElementById('edit_points').value)                         || 0;
+        var net_credits = parseFloat(document.getElementById('edit_net_credits').value.replace(/,/g, ''))  || 0;
+        var net_fees    = parseFloat(document.getElementById('edit_net_fees').value.replace(/,/g, ''))     || 0;
+        var prop_tax    = parseFloat(document.getElementById('edit_prop_tax').value.replace(/,/g, ''))     || 0;
+        var hoa         = parseFloat(document.getElementById('edit_hoa').value.replace(/,/g, ''))          || 0;
+        var insurance   = parseFloat(document.getElementById('edit_insurance').value.replace(/,/g, ''))    || 0;
+        var name        = document.getElementById('edit_name').value.trim();
+
+        if (loan_amount <= 0) {
+            document.getElementById('edit_loan_amount').focus();
+            return;
+        }
+
+        var pi           = computePI(loan_amount, interest, term_years);
+        var monthly_total = pi + prop_tax + hoa + (insurance / 12);
+        var closing      = (points / 100 * loan_amount) + net_fees - net_credits;
+
+        var loans = loadLoans().map(function(l) {
+            if (l.id !== id) return l;
+            return {
+                id: l.id, name: name || l.name,
+                loan_amount, term_years, interest, points,
+                net_credits, net_fees, prop_tax, hoa, insurance,
+                pi, monthly_total, closing,
+            };
+        });
+        saveLoans(loans);
+        renderLoans();
+        document.getElementById('edit-loan-modal').close();
+    }
+
+    document.getElementById('edit-save-btn').addEventListener('click', saveEditLoan);
+    document.getElementById('confirm-delete-btn').addEventListener('click', confirmDelete);
+
+    document.getElementById('edit-loan-modal').addEventListener('close', function() {
+        var modal = document.getElementById('edit-loan-modal');
+        var panel = document.getElementById('preview-panel');
+        modal.parentNode.insertBefore(panel, modal);
+        document.body.classList.remove('edit-modal-open');
+        updatePreview();
+    });
+
+    document.getElementById('add-loan-btn').addEventListener('click', addLoan);
+
+    // ── PDF drop zone ─────────────────────────────────────────────────────────
+    (function() {
+        var zone      = document.getElementById('pdf-drop-zone');
+        var fileInput = document.getElementById('pdf-file-input');
+        var status    = document.getElementById('pdf-drop-status');
+        var uploading = false;
+
+        function setStatus(msg, cls) {
+            if (!msg) {
+                status.textContent = '';
+                status.className = 'text-xs mt-1.5 hidden';
+            } else {
+                status.textContent = msg;
+                status.className = 'text-xs mt-1.5 ' + (cls || 'text-base-content/40');
             }
         }
+
+        function setBusy(on) {
+            if (on) {
+                zone.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+            } else {
+                zone.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+            }
+        }
+
+        function highlight(on) {
+            if (on) {
+                zone.classList.add('border-primary', 'bg-primary/10');
+                zone.classList.remove('border-success/50', 'bg-success/5');
+            } else {
+                zone.classList.remove('border-primary', 'bg-primary/10');
+                zone.classList.add('border-success/50', 'bg-success/5');
+            }
+        }
+
+        zone.addEventListener('dragover', function(e) { e.preventDefault(); if (!uploading) highlight(true); });
+        zone.addEventListener('dragleave', function(e) { if (!zone.contains(e.relatedTarget)) highlight(false); });
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            highlight(false);
+            if (uploading) return;
+            var file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                handlePdfFile(file);
+            } else {
+                setStatus('Only PDF files are supported', 'text-error');
+                setTimeout(function() { setStatus(''); }, 3000);
+            }
+        });
+
+        zone.addEventListener('click', function(e) {
+            if (uploading) return;
+            if (e.target !== fileInput) fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function() {
+            if (uploading) { this.value = ''; return; }
+            if (this.files[0]) { handlePdfFile(this.files[0]); this.value = ''; }
+        });
+
+        function handlePdfFile(file) {
+            uploading = true;
+            setBusy(true);
+            setStatus('Parsing PDF\u2026', 'text-info animate-pulse');
+            var fd = new FormData();
+            fd.append('file', file);
+            fetch('/mortgage/parse-loan-estimate', { method: 'POST', body: fd })
+                .then(function(r) {
+                    if (!r.ok) return r.json().then(function(d) { throw new Error(d.detail || 'Server error'); });
+                    return r.json();
+                })
+                .then(function(data) {
+                    uploading = false;
+                    setBusy(false);
+                    setStatus('');
+                    openPdfImportModal(data, file.name);
+                })
+                .catch(function(err) {
+                    uploading = false;
+                    setBusy(false);
+                    setStatus('Parse failed: ' + err.message, 'text-error');
+                    setTimeout(function() { setStatus(''); }, 5000);
+                });
+        }
+    })();
+
+    // ── PDF import modal ──────────────────────────────────────────────────────
+    function updatePdfPreview() {
+        renderPreview(
+            parseFloat(document.getElementById('pdf_loan_amount').value.replace(/,/g, '')) || 0,
+            parseFloat(document.getElementById('pdf_interest').value)                      || 0,
+            parseFloat(document.getElementById('pdf_term_years').value)                    || 30,
+            parseFloat(document.getElementById('pdf_points').value)                        || 0,
+            parseFloat(document.getElementById('pdf_net_credits').value.replace(/,/g, '')) || 0,
+            parseFloat(document.getElementById('pdf_net_fees').value.replace(/,/g, ''))    || 0,
+            parseFloat(document.getElementById('pdf_prop_tax').value.replace(/,/g, ''))    || 0,
+            parseFloat(document.getElementById('pdf_hoa').value.replace(/,/g, ''))         || 0,
+            parseFloat(document.getElementById('pdf_insurance').value.replace(/,/g, ''))   || 0
+        );
+    }
+
+    document.querySelectorAll('#pdf_loan_amount, #pdf_term_years, #pdf_interest, #pdf_points, #pdf_net_credits, #pdf_net_fees, #pdf_prop_tax, #pdf_hoa, #pdf_insurance')
+        .forEach(function(el) { el.addEventListener('input', updatePdfPreview); });
+
+    function openPdfImportModal(data, filename) {
+        document.getElementById('pdf_name').value        = filename.replace(/\.pdf$/i, '');
+        document.getElementById('pdf_loan_amount').value = data.loan_amount  ? fmtDollarField(data.loan_amount)                          : '';
+        document.getElementById('pdf_term_years').value  = data.term_years   || 30;
+        setDecimalInput(document.getElementById('pdf_interest'), data.interest_rate);
+        setDecimalInput(document.getElementById('pdf_points'),   data.points);
+        document.getElementById('pdf_net_credits').value = data.net_credits   ? fmtDollarField(data.net_credits)                         : '';
+        document.getElementById('pdf_net_fees').value    = data.net_fees      ? fmtDollarField(data.net_fees)                            : '';
+        document.getElementById('pdf_prop_tax').value    = data.prop_tax      ? fmtDollarField(data.prop_tax)                            : '';
+        document.getElementById('pdf_hoa').value         = data.hoa           ? fmtDollarField(data.hoa)                                 : '';
+        document.getElementById('pdf_insurance').value   = data.insurance     ? fmtDollarField(data.insurance)                           : '';
+
+        var modal    = document.getElementById('pdf-import-modal');
+        var panel    = document.getElementById('preview-panel');
+        var backdrop = modal.querySelector('.modal-backdrop');
+        modal.insertBefore(panel, backdrop);
+        panel.style.bottom = '5rem';
+        panel.style.right  = '1.5rem';
+        panel.style.top    = 'auto';
+        panel.style.left   = 'auto';
+
+        modal.showModal();
+        document.body.classList.add('edit-modal-open');
+        updatePdfPreview();
+    }
+
+    document.getElementById('pdf-import-modal').addEventListener('close', function() {
+        var modal = document.getElementById('pdf-import-modal');
+        var panel = document.getElementById('preview-panel');
+        modal.parentNode.insertBefore(panel, modal);
+        document.body.classList.remove('edit-modal-open');
+        updatePreview();
     });
+
+    function confirmPdfImport() {
+        var loan_amount = parseFloat(document.getElementById('pdf_loan_amount').value.replace(/,/g, '')) || 0;
+        var term_years  = parseFloat(document.getElementById('pdf_term_years').value)                   || 30;
+        var interest    = parseFloat(document.getElementById('pdf_interest').value)                     || 0;
+        var points      = parseFloat(document.getElementById('pdf_points').value)                       || 0;
+        var net_credits = parseFloat(document.getElementById('pdf_net_credits').value.replace(/,/g, '')) || 0;
+        var net_fees    = parseFloat(document.getElementById('pdf_net_fees').value.replace(/,/g, ''))    || 0;
+        var prop_tax    = parseFloat(document.getElementById('pdf_prop_tax').value.replace(/,/g, ''))    || 0;
+        var hoa         = parseFloat(document.getElementById('pdf_hoa').value.replace(/,/g, ''))         || 0;
+        var insurance   = parseFloat(document.getElementById('pdf_insurance').value.replace(/,/g, ''))   || 0;
+        var name        = document.getElementById('pdf_name').value.trim();
+
+        if (loan_amount <= 0) {
+            document.getElementById('pdf_loan_amount').focus();
+            showToast('Loan amount must be positive', 'error');
+            return;
+        }
+
+        var loans = loadLoans();
+        var pi           = computePI(loan_amount, interest, term_years);
+        var monthly_total = pi + prop_tax + hoa + (insurance / 12);
+        var closing      = (points / 100 * loan_amount) + net_fees - net_credits;
+
+        loans.push({
+            id: Date.now(),
+            name: name || ('Loan ' + (loans.length + 1)),
+            loan_amount, term_years, interest, points,
+            net_credits, net_fees, prop_tax, hoa, insurance,
+            pi, monthly_total, closing,
+        });
+        saveLoans(loans);
+        renderLoans();
+        showToast('\u2713 \u201c' + (name || 'Loan') + '\u201d added from PDF');
+        document.getElementById('pdf-import-modal').close();
+    }
+
+    document.getElementById('pdf-import-confirm-btn').addEventListener('click', confirmPdfImport);
+
+    // ── Floating preview panel ────────────────────────────────────────────────
+    (function() {
+        var panel   = document.getElementById('preview-panel');
+        var header  = document.getElementById('preview-panel-header');
+        var body    = document.getElementById('preview-panel-body');
+        var chevron = document.getElementById('preview-chevron');
+        var toggle  = document.getElementById('preview-panel-toggle');
+        var dragging = false, ox, oy;
+
+        // Minimise / restore
+        toggle.addEventListener('click', function() {
+            var collapsed = body.style.display === 'none';
+            body.style.display = collapsed ? '' : 'none';
+            chevron.style.transform = collapsed ? '' : 'rotate(-90deg)';
+            toggle.title = collapsed ? 'Minimize' : 'Expand';
+        });
+
+        // Drag start
+        header.addEventListener('mousedown', function(e) {
+            if (e.target.closest('button')) return;
+            dragging = true;
+            var r = panel.getBoundingClientRect();
+            // Convert to top/left if currently anchored via bottom/right
+            panel.style.top    = r.top  + 'px';
+            panel.style.left   = r.left + 'px';
+            panel.style.bottom = 'auto';
+            panel.style.right  = 'auto';
+            ox = e.clientX - r.left;
+            oy = e.clientY - r.top;
+            header.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            var x = e.clientX - ox;
+            var y = e.clientY - oy;
+            // Clamp to viewport
+            x = Math.max(0, Math.min(x, window.innerWidth  - panel.offsetWidth));
+            y = Math.max(0, Math.min(y, window.innerHeight - panel.offsetHeight));
+            panel.style.left = x + 'px';
+            panel.style.top  = y + 'px';
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (!dragging) return;
+            dragging = false;
+            header.style.cursor = 'grab';
+        });
+
+        // Clamp panel back into the viewport after a resize.
+        // Converts bottom/right anchoring to top/left first so the math is
+        // uniform, then clamps each edge.
+        function clampToViewport() {
+            var r = panel.getBoundingClientRect();
+            var x = r.left;
+            var y = r.top;
+            var clamped = false;
+
+            var maxX = window.innerWidth  - panel.offsetWidth;
+            var maxY = window.innerHeight - panel.offsetHeight;
+
+            if (x < 0)      { x = 0;    clamped = true; }
+            if (y < 0)      { y = 0;    clamped = true; }
+            if (x > maxX)   { x = Math.max(0, maxX); clamped = true; }
+            if (y > maxY)   { y = Math.max(0, maxY); clamped = true; }
+
+            if (clamped) {
+                panel.style.top    = y + 'px';
+                panel.style.left   = x + 'px';
+                panel.style.bottom = 'auto';
+                panel.style.right  = 'auto';
+            }
+        }
+
+        window.addEventListener('resize', clampToViewport);
+    })();
+
+    renderLoans();
 </script>
 {% endblock %}

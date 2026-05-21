@@ -9,25 +9,23 @@
 </head>
 <body>
     <div class="flex flex-col h-screen justify-between">
-        <div class="navbar bg-primary text-primary-content">
-            <div class="drawer">
-                <input id="my-drawer" type="checkbox" class="drawer-toggle" />
-                <div class="drawer-content">
-                    <div class="container mx-auto px-4 flex items-center gap-4">
-                        <label for="my-drawer" class="btn btn-primary text-xl drawer-button">
-                            <img class="w-5 h-5" src="{{ url_for('static', path='/lucide-icons@0.507.0/menu.svg') }}" alt="Menu">
-                        </label>
-                        <h1 class="text-2xl font-bold">Mortgage Calculator</h1>
-                    </div>
-                </div>
-                <div class="drawer-side">
-                    <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-                    <ul class="menu bg-base-200 text-base-content min-h-full w-80 p-4">
-                        <li><a class="text-xl" href="/">Home</a></li>
-                        <li><a class="text-xl" href="/basic">Basic</a></li>
-                        <li><a class="text-xl" href="/table">Table</a></li>
-                    </ul>
-                </div>
+        <div class="navbar bg-base-200">
+            <div class="container mx-auto px-4 flex items-center gap-6">
+                <h1 class="text-xl font-bold whitespace-nowrap">Mortgage Calculator</h1>
+                <nav class="flex items-center gap-1">
+                    <a href="/"
+                       class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
+                        Home
+                    </a>
+                    <a href="/amortization"
+                       class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/amortization' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
+                        Amortization
+                    </a>
+                    <a href="/buy-vs-rent"
+                       class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
+                        Buy vs Rent
+                    </a>
+                </nav>
             </div>
         </div>
         <main class="mb-auto">
