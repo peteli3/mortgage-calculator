@@ -45,7 +45,7 @@
     </div>
     {% else %}
     <div class="flex flex-col items-center justify-center py-10">
-        <div class="card w-96 bg-base-100 shadow-xl">
+        <div class="card w-full max-w-sm bg-base-100 shadow-xl">
             <div class="card-body items-center text-center">
                 <h2 class="card-title text-xl mb-4">Authentication Required</h2>
                 <p class="mb-4">You need to log in to view and manage table data.</p>
@@ -67,7 +67,7 @@
             hx-ext="json-enc"
             hx-on::after-request="if (event.detail.successful) resetAddForm(this); else openErrorModal()"
         >
-            <div class="grid grid-cols-[1fr_2fr] gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4 mb-4">
                 <div class="flex flex-col space-y-4">
                     <label for="name" class="label label-text h-10">Name:</label>
                     <label for="category" class="label label-text h-10">Category:</label>
@@ -156,7 +156,7 @@
             hx-ext="json-enc"
             hx-on::after-request="if (event.detail.successful) closeEditModal(); else openErrorModal()"
         >
-            <div class="grid grid-cols-[1fr_2fr] gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4 mb-4">
                 <div class="flex flex-col space-y-4">
                     <label for="editName" class="label label-text h-10">Name:</label>
                     <label for="editCategory" class="label label-text h-10">Category:</label>

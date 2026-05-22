@@ -2,33 +2,13 @@
 
 {% block title %}Amortization — Mortgage Calculator{% endblock %}
 
+{% from "_loans_panel.html" import loans_panel %}
 {% block content %}
-<div class="py-4 flex gap-4 h-[calc(100vh-8rem)]">
+<div class="py-4 flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
 
-    {# Left column: ~1/3 #}
-    <div class="w-1/3 flex flex-col min-h-0">
-        <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300">
-            <h2 class="text-xl font-bold tracking-wide">Loans</h2>
-        </div>
-        <div class="bg-base-200 rounded-b flex-1 overflow-y-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
-                        <th class="pl-4 pr-3 py-2 text-left font-medium cursor-pointer select-none" data-sort-key="name">Name </th>
-                        <th class="px-3 py-2 text-right font-medium cursor-pointer select-none" data-sort-key="loan_amount">Loan Amt </th>
-                        <th class="px-3 py-2 text-right font-medium cursor-pointer select-none" data-sort-key="pi">P&amp;I/mo </th>
-                        <th class="pl-3 pr-4 py-2"></th>
-                    </tr>
-                </thead>
-                <tbody id="amort-loans-tbody">
-                    <tr id="amort-loans-empty">
-                        <td colspan="4" class="pl-4 pr-4 py-6 text-center text-base-content/40 text-xs">
-                            No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    {# Left column: ~1/3 — hidden on mobile, transparent wrapper on desktop #}
+    <div class="hidden lg:contents">
+        {{ loans_panel('amort-loans-tbody', 'amort-loans-empty') }}
     </div>
 
     {# Right column: ~2/3 #}
@@ -55,36 +35,57 @@
 
             {# Header: loan name + summary stats #}
             <div class="px-6 py-3 border-b border-base-300 shrink-0">
-                <h2 id="graph-loan-name" class="text-xl font-bold tracking-wide text-base-content/80"></h2>
+                <div class="flex items-center gap-3">
+                    <h2 id="graph-loan-name" class="text-xl font-bold tracking-wide text-base-content/80 min-w-0 truncate"></h2>
+                    <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
+                            onclick="document.getElementById('select-loan-modal').showModal()">
+                        Change
+                    </button>
+                </div>
                 <div id="graph-summary" class="mt-2 hidden">
-                    <div class="space-y-1.5">
-                        <div class="flex gap-8 text-sm flex-wrap">
-                            <span class="text-base-content/50">Loan Amount <span id="graph-loan-amount" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                            <span class="text-base-content/50">Interest Rate <span id="graph-interest-rate" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        </div>
-                        <div class="flex gap-8 text-sm">
-                            <span class="text-base-content/50">Total Interest <span id="graph-total-interest" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                            <span class="text-base-content/50">Closing Costs <span id="graph-closing-costs" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                            <span class="text-base-content/50">Total Cost <span id="graph-cost-of-loan" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        </div>
-                        <div class="flex gap-8 text-sm">
-                            <span class="text-base-content/50">Payoff Date <span id="graph-payoff-date" class="font-medium text-base-content/80 ml-1"></span></span>
-                            <span class="text-base-content/50">Remaining Payments <span id="graph-remaining-payments" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        </div>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-1.5">
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Loan Amount</span>
+                            <span id="graph-loan-amount" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Interest Rate</span>
+                            <span id="graph-interest-rate" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Total Interest</span>
+                            <span id="graph-total-interest" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Closing Costs</span>
+                            <span id="graph-closing-costs" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Total Cost</span>
+                            <span id="graph-cost-of-loan" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Payoff Date</span>
+                            <span id="graph-payoff-date" class="font-medium text-base-content/80"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Remaining Payments</span>
+                            <span id="graph-remaining-payments" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
                     </div>
                 </div>
             </div>
 
             {# SVG chart area — fills remaining vertical space #}
-            <div id="graph-chart-container" class="flex-1 min-h-0 relative" style="min-height:180px">
+            <div id="graph-chart-container" class="aspect-video lg:aspect-auto flex-1 min-h-0 relative" style="min-height:220px">
                 <svg id="amort-chart" style="position:absolute;inset:0;width:100%;height:100%;display:block"></svg>
             </div>
 
-            {# Bottom row: interactive legend (left) + additional payments (right) — fixed h-40 so the chart above never shrinks #}
-            <div class="flex items-stretch border-t border-base-300 shrink-0 h-40 overflow-hidden">
+            {# Bottom row: interactive legend (left) + additional payments (right) — fixed h-40 on desktop #}
+            <div class="flex flex-col lg:flex-row items-stretch border-t border-base-300 shrink-0 lg:h-40 overflow-y-auto overflow-x-hidden">
 
                 {# Legend #}
-                <div class="px-5 py-3 border-r border-base-300 shrink-0 flex flex-col justify-center" style="min-width:300px">
+                <div class="px-5 py-3 border-b lg:border-b-0 lg:border-r border-base-300 shrink-0 flex flex-col justify-center lg:min-w-[280px]">
                     <div class="mb-2.5">
                         <div class="text-sm text-base-content/50">At cursor position: <span id="legend-date" class="text-base-content/60 font-medium">—</span></div>
                         <span id="legend-pin-badge" class="hidden text-xs text-base-content/40">(pinned — click to release)</span>
@@ -162,86 +163,114 @@
         {# Schedule panel #}
         <div id="panel-schedule" class="bg-base-200 rounded-b flex-1 overflow-y-auto flex flex-col min-h-0 hidden">
             <div class="px-6 pt-3 pb-3 border-b border-base-300">
-                <h2 id="schedule-loan-name" class="text-xl font-bold tracking-wide text-base-content/80"></h2>
-                <div id="schedule-summary" class="mt-2 space-y-1.5">
-                    <div class="flex gap-8 text-sm flex-wrap">
-                        <span class="text-base-content/50">Loan Amount <span id="schedule-loan-amount" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        <span class="text-base-content/50">Interest Rate <span id="schedule-interest-rate" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        <span id="schedule-down-payment-wrap" class="text-base-content/50 hidden">Down Payment <span id="schedule-down-payment" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                    </div>
-                    <div class="flex gap-8 text-sm">
-                        <span class="text-base-content/50">Total Interest <span id="schedule-total-interest" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        <span class="text-base-content/50">Closing Costs <span id="schedule-closing-costs" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                        <span class="text-base-content/50">Total Cost <span id="schedule-cost-of-loan" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
-                    </div>
-                    <div class="flex gap-8 text-sm">
-                        <span class="text-base-content/50">Payoff Date <span id="schedule-payoff-date" class="font-medium text-base-content/80 ml-1"></span></span>
-                        <span class="text-base-content/50">Remaining Payments <span id="schedule-remaining-payments" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                <div class="flex items-center gap-3">
+                    <h2 id="schedule-loan-name" class="text-xl font-bold tracking-wide text-base-content/80 min-w-0 truncate"></h2>
+                    <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
+                            onclick="document.getElementById('select-loan-modal').showModal()">
+                        Change
+                    </button>
+                </div>
+                <div id="schedule-summary" class="mt-2">
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-1.5">
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Loan Amount</span>
+                            <span id="schedule-loan-amount" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Interest Rate</span>
+                            <span id="schedule-interest-rate" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span id="schedule-down-payment-wrap" class="hidden flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Down Payment</span>
+                            <span id="schedule-down-payment" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Total Interest</span>
+                            <span id="schedule-total-interest" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Closing Costs</span>
+                            <span id="schedule-closing-costs" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Total Cost</span>
+                            <span id="schedule-cost-of-loan" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Payoff Date</span>
+                            <span id="schedule-payoff-date" class="font-medium text-base-content/80"></span>
+                        </span>
+                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
+                            <span class="text-xs sm:text-sm text-base-content/50">Remaining Payments</span>
+                            <span id="schedule-remaining-payments" class="font-medium text-base-content/80 tabular-nums"></span>
+                        </span>
                     </div>
                 </div>
             </div>
 
-            {# Schedule settings — collapsible #}
-            <div class="border-b border-base-300">
-                <button id="sched-settings-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
-                    <svg id="sched-settings-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
-                    <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Schedule Settings</span>
-                    <span id="sched-settings-badge" class="ml-2 text-xs text-base-content/50 font-medium hidden"></span>
-                </button>
-                <div id="sched-settings-body" class="hidden px-6 py-3 bg-base-100/50">
-                    <div class="flex items-center gap-6 text-sm flex-wrap">
-                        <label class="flex items-center gap-2">
-                            <span class="text-base-content/60 whitespace-nowrap">Start date</span>
-                            <select id="sched-start-month" class="select select-xs select-bordered">
-                                <option value="1">Jan</option><option value="2">Feb</option>
-                                <option value="3">Mar</option><option value="4">Apr</option>
-                                <option value="5">May</option><option value="6">Jun</option>
-                                <option value="7">Jul</option><option value="8">Aug</option>
-                                <option value="9">Sep</option><option value="10">Oct</option>
-                                <option value="11">Nov</option><option value="12">Dec</option>
-                            </select>
-                            <input type="number" id="sched-start-year" class="input input-bordered input-xs w-20" min="2000" max="2100" placeholder="2026">
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <span class="text-base-content/60 whitespace-nowrap">Down payment</span>
-                            <label class="input input-bordered input-xs flex items-center gap-1 w-28">
-                                <span class="text-base-content/60">$</span>
-                                <input type="text" inputmode="numeric" id="sched-down-payment" placeholder="0" class="grow min-w-0">
-                            </label>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            {# Additional payments — collapsible #}
-            <div class="border-b border-base-300">
-                <button id="extra-payments-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
-                    <svg id="extra-payments-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
-                    <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Additional Payments</span>
-                    <span id="extra-payments-badge" class="ml-2 text-xs text-success font-medium hidden"></span>
-                </button>
-                <div id="extra-payments-body" class="hidden bg-base-100/50">
-                    <div id="extra-payments-list"></div>
-                    <div class="px-6 py-2 border-t border-base-300/30">
-                        <button id="add-extra-payment-btn" class="btn btn-xs btn-ghost text-base-content/50 hover:text-base-content gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
-                            Add payment
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {# Schedule table #}
+            {# Schedule table (includes collapsibles that scroll with it) #}
             <div class="flex-1 overflow-y-auto">
+
+                {# Schedule settings — collapsible #}
+                <div class="border-b border-base-300">
+                    <button id="sched-settings-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
+                        <svg id="sched-settings-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                        <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Schedule Settings</span>
+                        <span id="sched-settings-badge" class="ml-2 text-xs text-base-content/50 font-medium hidden"></span>
+                    </button>
+                    <div id="sched-settings-body" class="hidden px-6 py-3 bg-base-100/50">
+                        <div class="flex items-center gap-6 text-sm flex-wrap">
+                            <label class="flex items-center gap-2">
+                                <span class="text-base-content/60 whitespace-nowrap">Start date</span>
+                                <select id="sched-start-month" class="select select-xs select-bordered">
+                                    <option value="1">Jan</option><option value="2">Feb</option>
+                                    <option value="3">Mar</option><option value="4">Apr</option>
+                                    <option value="5">May</option><option value="6">Jun</option>
+                                    <option value="7">Jul</option><option value="8">Aug</option>
+                                    <option value="9">Sep</option><option value="10">Oct</option>
+                                    <option value="11">Nov</option><option value="12">Dec</option>
+                                </select>
+                                <input type="number" id="sched-start-year" class="input input-bordered input-xs w-20" min="2000" max="2100" placeholder="2026">
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <span class="text-base-content/60 whitespace-nowrap">Down payment</span>
+                                <label class="input input-bordered input-xs flex items-center gap-1 w-28">
+                                    <span class="text-base-content/60">$</span>
+                                    <input type="text" inputmode="numeric" id="sched-down-payment" placeholder="0" class="grow min-w-0">
+                                </label>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {# Additional payments — collapsible #}
+                <div class="border-b border-base-300">
+                    <button id="extra-payments-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
+                        <svg id="extra-payments-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                        <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Additional Payments</span>
+                        <span id="extra-payments-badge" class="ml-2 text-xs text-success font-medium hidden"></span>
+                    </button>
+                    <div id="extra-payments-body" class="hidden bg-base-100/50">
+                        <div id="extra-payments-list"></div>
+                        <div class="px-6 py-2 border-t border-base-300/30">
+                            <button id="add-extra-payment-btn" class="btn btn-xs btn-ghost text-base-content/50 hover:text-base-content gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+                                Add payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead class="sticky top-0 bg-base-200 z-10">
                         <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
                             <th class="pl-6 pr-3 py-2 text-left font-medium w-8"></th>
                             <th class="px-3 py-2 text-left font-medium">Date</th>
                             <th class="px-3 py-2 text-right font-medium">Principal</th>
-                            <th class="px-3 py-2 text-left font-medium">Σ Principal</th>
+                            <th class="px-3 py-2 text-left font-medium whitespace-nowrap">Σ&nbsp;Principal</th>
                             <th class="px-3 py-2 text-right font-medium">Interest</th>
-                            <th class="px-3 py-2 text-left font-medium">Σ Interest</th>
+                            <th class="px-3 py-2 text-left font-medium whitespace-nowrap">Σ&nbsp;Interest</th>
                             <th class="pl-3 pr-6 py-2 text-right font-medium">Balance</th>
                         </tr>
                     </thead>
@@ -253,69 +282,38 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 
     </div>
 </div>
 
-{# Loan detail modal #}
-<dialog id="loan-detail-modal" class="modal">
+<dialog id="select-loan-modal" class="modal lg:hidden">
     <div class="modal-box max-w-sm">
-        <h3 id="modal-loan-name" class="font-bold text-lg mb-4"></h3>
-        <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
-            <span class="text-base-content/60">Loan Amount</span>
-            <span id="modal-loan-amount" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Interest Rate</span>
-            <span id="modal-interest" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Term</span>
-            <span id="modal-term" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">P&amp;I / mo</span>
-            <span id="modal-pi" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Monthly Total</span>
-            <span id="modal-monthly-total" class="text-right tabular-nums font-medium"></span>
-
-            <div class="col-span-2 border-t border-base-300 my-1"></div>
-
-            <span class="text-base-content/60">Points</span>
-            <span id="modal-points" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Net Credits</span>
-            <span id="modal-net-credits" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Net Fees</span>
-            <span id="modal-net-fees" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Closing Cost</span>
-            <span id="modal-closing" class="text-right tabular-nums font-medium"></span>
-
-            <div class="col-span-2 border-t border-base-300 my-1"></div>
-
-            <span class="text-base-content/60">Prop Tax / mo</span>
-            <span id="modal-prop-tax" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">HOA / mo</span>
-            <span id="modal-hoa" class="text-right tabular-nums font-medium"></span>
-
-            <span class="text-base-content/60">Insurance / yr</span>
-            <span id="modal-insurance" class="text-right tabular-nums font-medium"></span>
+        <h3 class="font-bold text-lg mb-3">Select a Loan</h3>
+        <div id="mobile-loans-list" class="space-y-1 max-h-72 overflow-y-auto">
+            <p class="text-xs text-base-content/40 py-2">
+                No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
+            </p>
         </div>
-        <div class="modal-action mt-5">
-            <form method="dialog"><button class="btn btn-sm btn-primary">Close</button></form>
+        <div class="modal-action mt-3">
+            <form method="dialog"><button class="btn btn-ghost btn-sm">Close</button></form>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
+
+{% include "_loan_detail_modal.html" %}
+{% include "_preview_panel.html" %}
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
+<script src="{{ url_for('static', path='/mortgage-loan-detail.js') }}"></script>
 <script>
-    var STORAGE_KEY = 'mortgage_loans';
-    var SELECTED_KEY = 'amortization_selected_loan';
+    // STORAGE_KEY / SELECTED_KEY / loadLoans defined in mortgage-common.js
+    // fmtPct defined in mortgage-loan-detail.js
     var EXTRA_PAYMENTS_KEY = 'amortization_extra_payments';
     var ACTIVE_TAB_KEY = 'amortization_active_tab';
     var SCHEDULE_SETTINGS_KEY = 'amortization_schedule_settings';
@@ -324,21 +322,11 @@
     var selectedLoanId = null;
     var amortSortState = { col: null, dir: 1 };
 
-    function loadLoans() {
-        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-        catch(e) { return []; }
-    }
-
     function fmtCurrency(val) {
         if (!val && val !== 0) return '—';
         if (!isFinite(val) || isNaN(val)) return '—';
         var sign = val < 0 ? '-' : '';
         return sign + '$' + Math.abs(Math.round(val)).toLocaleString();
-    }
-
-    function fmtPct(val) {
-        if (!val && val !== 0) return '—';
-        return val.toFixed(3) + '%';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -618,8 +606,10 @@
         if (downPayment > 0) {
             document.getElementById('schedule-down-payment').textContent = fmtCurrency(downPayment);
             dpWrap.classList.remove('hidden');
+            dpWrap.style.display = 'flex';
         } else {
             dpWrap.classList.add('hidden');
+            dpWrap.style.display = '';
         }
 
         var yearData = aggregateByYear(result.schedule);
@@ -633,7 +623,7 @@
             dpTr.className = 'border-b border-base-300/50 bg-success/5';
             dpTr.innerHTML =
                 '<td class="pl-6 pr-3 py-2"></td>' +
-                '<td class="px-3 py-2 text-base-content/60 text-xs font-medium">' + dpLabel + ' <span class="text-success text-xs">(down)</span></td>' +
+                '<td class="px-3 py-2 text-base-content/60 text-xs font-medium whitespace-nowrap">' + dpLabel + '\u00a0<span class="text-success text-xs">(down)</span></td>' +
                 '<td class="px-3 py-2 text-right tabular-nums text-success text-xs">' + fmtCurrency(downPayment) + '</td>' +
                 '<td class="px-3 py-2 text-left tabular-nums text-base-content/50 text-xs">' + fmtCurrency(downPayment) + '</td>' +
                 '<td class="px-3 py-2 text-right tabular-nums text-base-content/40 text-xs">—</td>' +
@@ -790,9 +780,9 @@
             tr.className = 'border-b border-base-300/50 hover:bg-base-300/30 transition-colors cursor-pointer';
             tr.setAttribute('data-loan-id', loan.id);
             tr.innerHTML =
-                '<td class="pl-4 pr-3 py-2 font-medium whitespace-nowrap max-w-[8rem] truncate" title="' + escHtml(loan.name) + '">' + escHtml(loan.name) + '</td>' +
-                '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.loan_amount) + '</td>' +
-                '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.pi) + '</td>' +
+                '<td class="pl-4 pr-3 py-2 font-medium truncate" title="' + escHtml(loan.name) + '">' + escHtml(loan.name) + '</td>' +
+                '<td class="hidden xl:table-cell px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.loan_amount) + '</td>' +
+                '<td class="hidden 2xl:table-cell px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.pi) + '</td>' +
                 '<td class="pl-3 pr-4 py-2 text-right">' +
                     '<button class="btn btn-xs btn-outline" data-view-id="' + loan.id + '">View</button>' +
                 '</td>';
@@ -811,6 +801,29 @@
             });
         });
 
+        // Update mobile loan picker list
+        var mobileList = document.getElementById('mobile-loans-list');
+        if (mobileList) {
+            mobileList.innerHTML = '';
+            if (loans.length === 0) {
+                mobileList.innerHTML = '<p class="text-xs text-base-content/40 py-2">No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.</p>';
+            } else {
+                loans.forEach(function(loan) {
+                    var div = document.createElement('div');
+                    div.className = 'flex items-center gap-3 px-3 py-2 rounded cursor-pointer hover:bg-base-300/40 ' +
+                        (loan.id === selectedLoanId ? 'bg-primary/15 font-semibold' : '');
+                    div.innerHTML =
+                        '<span class="flex-1 truncate text-sm">' + escHtml(loan.name) + '</span>' +
+                        '<span class="text-xs text-base-content/60 tabular-nums shrink-0">' + fmtCurrency(loan.pi) + '/mo</span>';
+                    div.addEventListener('click', function() {
+                        selectLoan(loan.id);
+                        document.getElementById('select-loan-modal').close();
+                    });
+                    mobileList.appendChild(div);
+                });
+            }
+        }
+
         // Restore persisted selection, fall back to first loan
         if (loans.length > 0 && selectedLoanId === null) {
             var savedId = Number(localStorage.getItem(SELECTED_KEY));
@@ -821,33 +834,8 @@
         updateAmortSortHeaders();
     }
 
-    function openLoanModal(id) {
-        var loans = loadLoans();
-        var loan = loans.find(function(l) { return l.id === id; });
-        if (!loan) return;
-
-        document.getElementById('modal-loan-name').textContent    = loan.name;
-        document.getElementById('modal-loan-amount').textContent  = fmtCurrency(loan.loan_amount);
-        document.getElementById('modal-interest').textContent     = fmtPct(loan.interest);
-        document.getElementById('modal-term').textContent         = (loan.term_years || '—') + ' yr';
-        document.getElementById('modal-pi').textContent           = fmtCurrency(loan.pi);
-        document.getElementById('modal-monthly-total').textContent= fmtCurrency(loan.monthly_total);
-        document.getElementById('modal-points').textContent       = loan.points ? loan.points.toFixed(3) + ' pts' : '—';
-        document.getElementById('modal-net-credits').textContent  = fmtCurrency(loan.net_credits);
-        document.getElementById('modal-net-fees').textContent     = fmtCurrency(loan.net_fees);
-        document.getElementById('modal-closing').textContent      = fmtCurrency(loan.closing);
-        document.getElementById('modal-prop-tax').textContent     = fmtCurrency(loan.prop_tax);
-        document.getElementById('modal-hoa').textContent          = fmtCurrency(loan.hoa);
-        document.getElementById('modal-insurance').textContent    = fmtCurrency(loan.insurance);
-
-        document.getElementById('loan-detail-modal').showModal();
-    }
-
-    function escHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    // fmtPreview / setPreviewVal / escHtml defined in mortgage-common.js
+    // openLoanModal + loan-detail-modal close listener defined in mortgage-loan-detail.js
 
     function switchTab(tab) {
         var tabs = ['graph', 'schedule'];
@@ -881,26 +869,7 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // Dollar input formatting for extra payment fields
     // ═══════════════════════════════════════════════════════════════════════════
-
-    function applyCommaFormat(input) {
-        var raw = input.value.replace(/[^0-9]/g, '');
-        var digitsRight = input.value.slice(input.selectionStart).replace(/[^0-9]/g, '').length;
-        var formatted = raw ? Number(raw).toLocaleString('en-US') : '';
-        input.value = formatted;
-        if (digitsRight === 0) {
-            input.setSelectionRange(formatted.length, formatted.length);
-        } else {
-            var count = 0;
-            var pos = formatted.length;
-            for (var i = formatted.length - 1; i >= 0; i--) {
-                if (/[0-9]/.test(formatted[i])) {
-                    count++;
-                    if (count === digitsRight) { pos = i; break; }
-                }
-            }
-            input.setSelectionRange(pos, pos);
-        }
-    }
+    // applyCommaFormat defined in mortgage-common.js
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Collapsible extra payments panel
@@ -939,18 +908,18 @@
             var amtFormatted = ep.amount ? Number(Math.round(ep.amount)).toLocaleString('en-US') : '';
 
             div.innerHTML =
-                '<select class="select select-xs select-bordered ep-type w-28">' +
+                '<select class="select select-xs select-bordered ep-type w-24">' +
                     '<option value="monthly"'  + (ep.type === 'monthly'  ? ' selected' : '') + '>Monthly</option>' +
                     '<option value="yearly"'   + (ep.type === 'yearly'   ? ' selected' : '') + '>Yearly</option>' +
                     '<option value="onetime"'  + (ep.type === 'onetime'  ? ' selected' : '') + '>One-time</option>' +
                 '</select>' +
-                '<label class="input input-bordered input-xs flex items-center gap-1 w-28">' +
+                '<label class="input input-bordered input-xs flex items-center gap-1 w-20">' +
                     '<span class="text-base-content/60">$</span>' +
                     '<input type="text" inputmode="numeric" class="grow min-w-0 ep-amount" placeholder="0" value="' + escHtml(amtFormatted) + '">' +
                 '</label>' +
                 '<span class="ep-month-label text-xs text-base-content/50 whitespace-nowrap">' + epMonthLabel(ep.type) + '</span>' +
-                '<input type="number" min="1" class="input input-bordered input-xs w-16 ep-start-month" value="' + (ep.startMonth || 1) + '">' +
-                '<button class="btn btn-ghost btn-xs text-base-content/30 hover:text-error ep-remove ml-auto" title="Remove">' +
+                '<input type="number" min="1" class="input input-bordered input-xs w-12 ep-start-month" value="' + (ep.startMonth || 1) + '">' +
+                '<button class="btn btn-ghost btn-xs text-base-content/30 hover:text-error ep-remove" title="Remove">' +
                     '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>' +
                 '</button>';
 
@@ -1094,20 +1063,7 @@
         return '$' + Math.round(val);
     }
 
-    function svgEl(tag, attrs) {
-        var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        if (attrs) Object.keys(attrs).forEach(function(k) { e.setAttribute(k, attrs[k]); });
-        return e;
-    }
-
-    function buildSvgPath(pts) {
-        if (!pts.length) return '';
-        var d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
-        for (var i = 1; i < pts.length; i++) {
-            d += 'L' + pts[i][0].toFixed(1) + ',' + pts[i][1].toFixed(1);
-        }
-        return d;
-    }
+    // svgEl / buildSvgPath defined in mortgage-loan-detail.js
 
     function updateGraphLegend(entry) {
         if (!entry) {
@@ -1267,11 +1223,31 @@
         overlay.addEventListener('click', onChartClick);
         svg.appendChild(overlay);
 
-        // Default legend = final (payoff) month
-        updateGraphLegend(sched[sched.length - 1]);
+        // Default legend = final (payoff) month; restore pin if one was active
+        if (pinnedIdx !== null) {
+            var pi = Math.max(0, Math.min(pinnedIdx, sched.length - 1));
+            var px = graphData.xS(pi);
+            var pe = sched[pi];
+            var hg2 = document.getElementById('chart-hover');
+            hg2.style.display = '';
+            document.getElementById('hover-vline').setAttribute('x1', px.toFixed(1));
+            document.getElementById('hover-vline').setAttribute('x2', px.toFixed(1));
+            document.getElementById('hc-interest').setAttribute('cx',  px.toFixed(1));
+            document.getElementById('hc-interest').setAttribute('cy',  graphData.yS(pe.accumInterest).toFixed(1));
+            document.getElementById('hc-principal').setAttribute('cx', px.toFixed(1));
+            document.getElementById('hc-principal').setAttribute('cy', graphData.yS(pe.accumPrincipal).toFixed(1));
+            document.getElementById('hc-balance').setAttribute('cx',   px.toFixed(1));
+            document.getElementById('hc-balance').setAttribute('cy',   graphData.yS(pe.balance).toFixed(1));
+            updateGraphLegend(pe);
+            chartLocked = true;
+            document.getElementById('legend-pin-badge').classList.remove('hidden');
+        } else {
+            updateGraphLegend(sched[sched.length - 1]);
+        }
     }
 
     var chartLocked = false;
+    var pinnedIdx   = null;  // survives re-renders; null = no pin
 
     function onChartHover(e) {
         if (chartLocked) return;
@@ -1318,6 +1294,7 @@
 
         if (chartLocked) {
             chartLocked = false;
+            pinnedIdx = null;
             badge.classList.add('hidden');
             return;
         }
@@ -1331,6 +1308,7 @@
         var n    = graphData.sched.length;
         var idx  = Math.round(relX / graphData.cW * (n - 1));
         idx = Math.max(0, Math.min(n - 1, idx));
+        pinnedIdx = idx;
         var x     = graphData.xS(idx);
         var entry = graphData.sched[idx];
 
@@ -1365,18 +1343,18 @@
             div.setAttribute('data-gep-id', ep.id);
             var amtFormatted = ep.amount ? Number(Math.round(ep.amount)).toLocaleString('en-US') : '';
             div.innerHTML =
-                '<select class="select select-xs select-bordered gep-type w-28">' +
+                '<select class="select select-xs select-bordered gep-type w-24">' +
                     '<option value="monthly"'  + (ep.type === 'monthly'  ? ' selected' : '') + '>Monthly</option>'  +
                     '<option value="yearly"'   + (ep.type === 'yearly'   ? ' selected' : '') + '>Yearly</option>'   +
                     '<option value="onetime"'  + (ep.type === 'onetime'  ? ' selected' : '') + '>One-time</option>' +
                 '</select>' +
-                '<label class="input input-bordered input-xs flex items-center gap-1 w-28">' +
+                '<label class="input input-bordered input-xs flex items-center gap-1 w-20">' +
                     '<span class="text-base-content/60">$</span>' +
                     '<input type="text" inputmode="numeric" class="grow min-w-0 gep-amount" placeholder="0" value="' + escHtml(amtFormatted) + '">' +
                 '</label>' +
                 '<span class="gep-month-label text-xs text-base-content/50 whitespace-nowrap">' + epMonthLabel(ep.type) + '</span>' +
-                '<input type="number" min="1" class="input input-bordered input-xs w-16 gep-start-month" value="' + (ep.startMonth || 1) + '">' +
-                '<button class="btn btn-ghost btn-xs text-base-content/30 hover:text-error gep-remove ml-auto" title="Remove">' +
+                '<input type="number" min="1" class="input input-bordered input-xs w-12 gep-start-month" value="' + (ep.startMonth || 1) + '">' +
+                '<button class="btn btn-ghost btn-xs text-base-content/30 hover:text-error gep-remove" title="Remove">' +
                     '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>' +
                 '</button>';
             container.appendChild(div);
@@ -1585,6 +1563,8 @@
         ? deeplinkedTab
         : (storedTab === 'schedule' ? 'schedule' : 'graph');
     switchTab(startTab);
+
+    // Floating preview panel drag/toggle defined in mortgage-loan-detail.js
 
     // Initial render
     renderLoans();

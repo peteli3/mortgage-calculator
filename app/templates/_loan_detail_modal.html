@@ -1,0 +1,51 @@
+{# Loan detail modal — shared across pages. JS: openLoanModal(id) must be defined per-page. #}
+<dialog id="loan-detail-modal" class="modal">
+    <div class="modal-box max-w-sm">
+        <h3 id="modal-loan-name" class="font-bold text-lg mb-4"></h3>
+        <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
+            <span class="text-base-content/60">Loan Amount</span>
+            <span id="modal-loan-amount" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Interest Rate</span>
+            <span id="modal-interest" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Term</span>
+            <span id="modal-term" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">P&amp;I / mo</span>
+            <span id="modal-pi" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Monthly Total</span>
+            <span id="modal-monthly-total" class="text-right tabular-nums font-medium"></span>
+
+            <div class="col-span-2 border-t border-base-300 my-1"></div>
+
+            <span class="text-base-content/60">Points</span>
+            <span id="modal-points" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Net Credits</span>
+            <span id="modal-net-credits" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Net Fees</span>
+            <span id="modal-net-fees" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Closing Cost</span>
+            <span id="modal-closing" class="text-right tabular-nums font-medium"></span>
+
+            <div class="col-span-2 border-t border-base-300 my-1"></div>
+
+            <span class="text-base-content/60">Prop Tax / mo</span>
+            <span id="modal-prop-tax" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">HOA / mo</span>
+            <span id="modal-hoa" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Insurance / yr</span>
+            <span id="modal-insurance" class="text-right tabular-nums font-medium"></span>
+        </div>
+        <div class="modal-action mt-5">
+            <form method="dialog"><button class="btn btn-sm btn-primary">Close</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>

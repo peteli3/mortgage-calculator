@@ -11,9 +11,14 @@
         transition: filter 0.15s ease;
     }
 </style>
-<div class="m-2 w-full">
-    <div class="flex flex-row gap-2 items-start w-full">
-        <aside class="w-72 shrink-0 space-y-2">
+<div class="m-2">
+    <button type="button"
+            class="md:hidden btn btn-primary btn-sm mb-3"
+            onclick="document.getElementById('add-loan-mobile-modal').showModal()">
+        + Add Loan
+    </button>
+    <div class="flex flex-col md:flex-row gap-2 md:items-start w-full">
+        <aside class="hidden md:block w-72 shrink-0 space-y-2">
             <h2 class="text-xl font-bold my-4 mx-2">New Loan</h2>
 
             <div id="pdf-drop-zone"
@@ -41,7 +46,7 @@
                                placeholder="Nickname for loan"
                                class="input input-bordered input-sm w-full">
 
-                        <label for="loan_amount" class="label-text font-medium whitespace-nowrap">Loan amount</label>
+                        <label for="loan_amount" class="label-text font-medium whitespace-nowrap">Loan Amount</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
@@ -162,12 +167,12 @@
             </form>
         </aside>
 
-        <section class="flex-1 min-w-0 mx-2 mb-2 space-y-2 overflow-x-auto">
+        <section class="flex-1 min-w-0 w-full mb-2 space-y-2">
             <h2 class="text-xl font-bold my-4 mx-2">Loans</h2>
             <!-- Future: Years (N) input for total-paid column -->
 
-            <div class="m-2">
-                <table class="table table-zebra table-sm w-full">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra table-sm w-max min-w-full">
                     <thead>
                         <tr>
                             <th class="p-2 whitespace-nowrap cursor-pointer select-none" data-sort-key="name">Name </th>
@@ -193,35 +198,93 @@
     </div>
 </div>
 
-<div id="preview-panel" class="fixed z-40 w-fit min-w-[15rem] rounded-lg border border-base-content/20 bg-base-200 shadow-xl select-none" style="bottom: 5rem; right: 1.5rem;">
-    <div id="preview-panel-header" class="flex items-center justify-between px-3 py-2 cursor-grab border-b border-base-content/15 rounded-t-lg">
-        <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Preview</span>
-        <button id="preview-panel-toggle" class="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content px-1 min-h-0 h-auto leading-none" title="Minimize">
-            <svg id="preview-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 9l6 6 6-6"/>
-            </svg>
-        </button>
+{% include "_preview_panel.html" %}
+
+<dialog id="add-loan-mobile-modal" class="modal">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg mb-4">Add Loan</h3>
+        <div class="space-y-3">
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="mob_name" class="label-text font-medium whitespace-nowrap">Name</label>
+                    <input type="text" id="mob_name" name="mob_name" placeholder="Nickname for loan" class="input input-bordered input-sm w-full" autocomplete="off">
+
+                    <label for="mob_loan_amount" class="label-text font-medium whitespace-nowrap">Loan Amount</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="mob_loan_amount" name="mob_loan_amount" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+
+                    <label for="mob_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="mob_term_years" name="mob_term_years" placeholder="30" min="1" max="50" step="1" value="30" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">yrs</span>
+                    </label>
+
+                    <label for="mob_interest_rate" class="label-text font-medium whitespace-nowrap">Interest</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="text" inputmode="decimal" id="mob_interest_rate" name="mob_interest_rate" placeholder="0.000" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="mob_points" class="label-text font-medium whitespace-nowrap">Points</label>
+                    <input type="text" inputmode="decimal" id="mob_points" name="mob_points" placeholder="0.000" class="input input-bordered input-sm w-full" autocomplete="off">
+
+                    <label for="mob_net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="mob_net_credits" name="mob_net_credits" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+
+                    <label for="mob_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="mob_net_fees" name="mob_net_fees" placeholder="0" class="grow min-w-0" autocomplete="off">
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="mob_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="mob_prop_tax" name="mob_prop_tax" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="mob_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="mob_hoa" name="mob_hoa" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="mob_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="mob_insurance" name="mob_insurance" placeholder="0" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60 text-xs">/yr</span>
+                    </label>
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="modal-action mt-4">
+            <button type="button" id="mob-add-loan-btn" class="btn btn-primary flex-1">Add</button>
+            <button type="button" id="mob-clear-form-btn" class="btn btn-ghost flex-none">Clear</button>
+            <form method="dialog"><button class="btn btn-ghost">Cancel</button></form>
+        </div>
     </div>
-    <div id="preview-panel-body" class="px-3 py-2 grid grid-cols-[auto_auto] gap-x-4 gap-y-1.5 text-sm">
-        <span class="text-base-content/60 whitespace-nowrap">P&amp;I <span class="text-xs">/mo</span></span>
-        <span id="preview_pi" class="font-mono font-medium tabular-nums text-right">—</span>
-
-        <span class="text-base-content/60 whitespace-nowrap">Monthly total <span class="text-xs">/mo</span></span>
-        <span id="preview_monthly" class="font-mono font-medium tabular-nums text-right">—</span>
-
-        <span class="text-base-content/60 whitespace-nowrap">Due at closing</span>
-        <span id="preview_closing" class="font-mono font-medium tabular-nums text-right">—</span>
-
-        <span class="text-base-content/60 whitespace-nowrap">Paid after 1 yr</span>
-        <span id="preview_1yr" class="font-mono font-medium tabular-nums text-right">—</span>
-
-        <span class="text-base-content/60 whitespace-nowrap">Paid after 3 yrs</span>
-        <span id="preview_3yr" class="font-mono font-medium tabular-nums text-right">—</span>
-
-        <span class="text-base-content/60 whitespace-nowrap">Paid after 5 yrs</span>
-        <span id="preview_5yr" class="font-mono font-medium tabular-nums text-right">—</span>
-    </div>
-</div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 
 <dialog id="edit-loan-modal" class="modal">
     <div class="modal-box max-w-sm">
@@ -414,32 +477,10 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
 <script>
     // ── Dollar inputs: comma formatting as-you-type ───────────────────────────
-    function applyCommaFormat(input) {
-        var raw = input.value.replace(/[^0-9]/g, '');
-        var digitsRight = input.value.slice(input.selectionStart).replace(/[^0-9]/g, '').length;
-        var formatted = raw ? Number(raw).toLocaleString('en-US') : '';
-        input.value = formatted;
-        if (digitsRight === 0) {
-            input.setSelectionRange(formatted.length, formatted.length);
-        } else {
-            var count = 0;
-            var pos = formatted.length;
-            for (var i = formatted.length - 1; i >= 0; i--) {
-                if (/[0-9]/.test(formatted[i])) {
-                    count++;
-                    if (count === digitsRight) { pos = i; break; }
-                }
-            }
-            input.setSelectionRange(pos, pos);
-        }
-    }
-
-    function fmtDollarField(val) {
-        return val > 0 ? Number(val).toLocaleString('en-US') : '';
-    }
-
+    // applyCommaFormat / fmtDollarField defined in mortgage-common.js
     document.querySelectorAll('input[inputmode="numeric"]').forEach(function(el) {
         el.addEventListener('input', function() { applyCommaFormat(this); });
     });
@@ -539,34 +580,7 @@
         return sign + '$' + Math.abs(Math.round(val)).toLocaleString();
     }
 
-    // Returns { text, title } for preview panel values.
-    // Values >= $1B switch to e-notation (3 sig figs); title holds the full value
-    // for display in a hover tooltip, otherwise title is null.
-    function fmtPreview(val) {
-        if (!isFinite(val) || isNaN(val)) return { text: '—', title: null };
-        var rounded = Math.round(val);
-        var abs = Math.abs(rounded);
-        var sign = rounded < 0 ? '-' : '';
-        if (abs >= 1000000000) {
-            var full = sign + '$' + abs.toLocaleString();
-            return { text: sign + '$' + abs.toExponential(2), title: full };
-        }
-        return { text: sign + '$' + abs.toLocaleString(), title: null };
-    }
-
-    function setPreviewVal(id, show, val) {
-        var el = document.getElementById(id);
-        if (!show) { el.textContent = '—'; el.removeAttribute('title'); return; }
-        var r = fmtPreview(val);
-        el.textContent = r.text;
-        if (r.title) { el.title = r.title; } else { el.removeAttribute('title'); }
-    }
-
-    function escHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    // fmtPreview / setPreviewVal / escHtml defined in mortgage-common.js
 
     function computePI(principal, annualRatePct, termYears) {
         if (principal <= 0 || termYears <= 0) return 0;
@@ -648,13 +662,7 @@
     });
 
     // ── localStorage ─────────────────────────────────────────────────────────
-    var STORAGE_KEY = 'mortgage_loans';
-
-    function loadLoans() {
-        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-        catch(e) { return []; }
-    }
-
+    // STORAGE_KEY / loadLoans defined in mortgage-common.js
     function saveLoans(loans) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(loans));
     }
@@ -1158,5 +1166,76 @@
     })();
 
     renderLoans();
+
+    // ── Mobile Add Loan dialog ────────────────────────────────────────────────
+    function readFormInputsMobile() {
+        return {
+            name:        document.getElementById('mob_name').value.trim(),
+            loan_amount: parseFloat(document.getElementById('mob_loan_amount').value.replace(/,/g, ''))   || 0,
+            term_years:  parseFloat(document.getElementById('mob_term_years').value)                      || 30,
+            interest:    parseFloat(document.getElementById('mob_interest_rate').value)                   || 0,
+            points:      parseFloat(document.getElementById('mob_points').value)                          || 0,
+            net_credits: parseFloat(document.getElementById('mob_net_credits').value.replace(/,/g, ''))   || 0,
+            net_fees:    parseFloat(document.getElementById('mob_net_fees').value.replace(/,/g, ''))      || 0,
+            prop_tax:    parseFloat(document.getElementById('mob_prop_tax').value.replace(/,/g, ''))      || 0,
+            hoa:         parseFloat(document.getElementById('mob_hoa').value.replace(/,/g, ''))           || 0,
+            insurance:   parseFloat(document.getElementById('mob_insurance').value.replace(/,/g, ''))     || 0,
+        };
+    }
+
+    function clearMobileForm() {
+        document.getElementById('mob_name').value        = '';
+        document.getElementById('mob_loan_amount').value = '';
+        document.getElementById('mob_term_years').value  = '30';
+        setDecimalInput(document.getElementById('mob_interest_rate'), 0);
+        setDecimalInput(document.getElementById('mob_points'),        0);
+        document.getElementById('mob_net_credits').value = '';
+        document.getElementById('mob_net_fees').value    = '';
+        document.getElementById('mob_prop_tax').value    = '';
+        document.getElementById('mob_hoa').value         = '';
+        document.getElementById('mob_insurance').value   = '';
+    }
+
+    function addLoanMobile() {
+        var f = readFormInputsMobile();
+        if (f.name.length === 0) {
+            document.getElementById('mob_name').focus();
+            showToast('Name must not be empty', 'error');
+            return;
+        }
+        if (f.loan_amount <= 0) {
+            document.getElementById('mob_loan_amount').focus();
+            showToast('Loan amount must be positive', 'error');
+            return;
+        }
+        var loans        = loadLoans();
+        var pi           = computePI(f.loan_amount, f.interest, f.term_years);
+        var monthlyTotal = pi + f.prop_tax + f.hoa + (f.insurance / 12);
+        var closing      = (f.points / 100 * f.loan_amount) + f.net_fees - f.net_credits;
+        loans.push({
+            id:            Date.now(),
+            name:          f.name,
+            loan_amount:   f.loan_amount,
+            term_years:    f.term_years,
+            interest:      f.interest,
+            points:        f.points,
+            net_credits:   f.net_credits,
+            net_fees:      f.net_fees,
+            prop_tax:      f.prop_tax,
+            hoa:           f.hoa,
+            insurance:     f.insurance,
+            pi:            pi,
+            monthly_total: monthlyTotal,
+            closing:       closing,
+        });
+        saveLoans(loans);
+        renderLoans();
+        showToast('\u2713 \u201c' + f.name + '\u201d added');
+        clearMobileForm();
+        document.getElementById('add-loan-mobile-modal').close();
+    }
+
+    document.getElementById('mob-add-loan-btn').addEventListener('click', addLoanMobile);
+    document.getElementById('mob-clear-form-btn').addEventListener('click', clearMobileForm);
 </script>
 {% endblock %}

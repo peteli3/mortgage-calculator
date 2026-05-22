@@ -1,0 +1,1005 @@
+{% extends "base.html" %}
+{% from "_loans_panel.html" import loans_panel %}
+
+{% block title %}Buy vs Rent — Mortgage Calculator{% endblock %}
+
+{% block content %}
+<div class="py-4 flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
+
+    {# Left column: ~1/3 — hidden on mobile, transparent wrapper on desktop #}
+    <div class="hidden lg:contents">
+        {{ loans_panel('bvr-loans-tbody', 'bvr-loans-empty') }}
+    </div>
+
+    {# Right column: ~2/3 #}
+    <div class="flex-1 flex flex-col min-h-0 bg-base-200 rounded">
+
+        {# Header: loan name + action buttons #}
+        <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 flex-wrap gap-y-1">
+            <h2 class="text-xl font-bold tracking-wide text-base-content/80" id="bvr-loan-name"></h2>
+            <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
+                    onclick="document.getElementById('bvr-select-loan-modal').showModal()">
+                Change
+            </button>
+            <button type="button" class="btn btn-sm btn-outline shrink-0"
+                    onclick="document.getElementById('bvr-assumptions-modal').showModal()">
+                Assumptions
+            </button>
+        </div>
+
+        {# Placeholder: no loan selected #}
+        <div id="bvr-placeholder" class="flex-1 flex items-center justify-center text-base-content/30 text-sm">
+            Select a loan to begin the buy vs rent analysis.
+        </div>
+
+        {# Analysis panel: shown when a loan is selected #}
+        <div id="bvr-analysis" class="hidden flex-1 flex flex-col min-h-0">
+
+            {# ── Break-even callout ──────────────────────────────────────── #}
+            <div id="bvr-callout" class="px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 text-sm min-h-[2.25rem]">
+                <span id="bvr-callout-icon" class="text-base-content/30 font-bold w-4 text-center shrink-0"></span>
+                <span id="bvr-callout-text" class="text-base-content/50">Enter a down payment and monthly rent to see the analysis.</span>
+            </div>
+
+            {# ── Year-by-Year Table + Chart ───────────────────────────────── #}
+            <div class="flex-1 overflow-y-auto">
+
+                {# ── Net Worth Chart ──────────────────────────────────────── #}
+                <div id="bvr-chart-wrap" class="relative shrink-0 border-b border-base-300 aspect-video" style="min-height:220px">
+                    <svg id="bvr-chart" style="position:absolute;inset:0;width:100%;height:100%;display:block"></svg>
+                </div>
+
+                {# ── Chart Legend (scrolls with table) ─────────────────────── #}
+                <div id="bvr-chart-legend" class="hidden px-5 py-2 border-b border-base-300">
+                    {# 4-col grid: dot | label | at-year | at-payoff #}
+                    <div class="grid gap-x-3 gap-y-1.5 items-center text-sm" style="grid-template-columns: 13px auto auto auto">
+                        {# row 1: stacked year+advantage / pin badge + column headers #}
+                        <div class="col-span-2 flex flex-col gap-0.5 pb-0.5">
+                            <span class="text-xs text-base-content/50">Year <span id="bvr-legend-year" class="font-medium text-base-content/70">—</span><span id="bvr-legend-adv-inline" class="hidden"> · <span id="bvr-legend-adv-label"></span> <span id="bvr-legend-adv-val" class="font-semibold tabular-nums">—</span></span></span>
+                            <span id="bvr-legend-pin-badge" class="hidden text-xs text-base-content/40">(pinned — click to release)</span>
+                        </div>
+                        <span class="text-xs text-base-content/35 text-right pb-0.5 self-end">At year</span>
+                        <span class="text-xs text-base-content/35 text-right pb-0.5 self-end">At payoff</span>
+                        {# row 2: Buyer NW #}
+                        <svg width="13" height="13"><circle cx="6.5" cy="6.5" r="5.5" fill="#60a5fa"/></svg>
+                        <span class="text-base-content/70">Buyer NW</span>
+                        <span id="bvr-legend-buy" class="font-semibold tabular-nums text-base-content/90 text-right">—</span>
+                        <span id="bvr-legend-buy-payoff" class="font-semibold tabular-nums text-base-content/50 text-right">—</span>
+                        {# row 3: Renter NW #}
+                        <svg width="13" height="13"><circle cx="6.5" cy="6.5" r="5.5" fill="#4ade80"/></svg>
+                        <span class="text-base-content/70">Renter NW</span>
+                        <span id="bvr-legend-rent" class="font-semibold tabular-nums text-base-content/90 text-right">—</span>
+                        <span id="bvr-legend-rent-payoff" class="font-semibold tabular-nums text-base-content/50 text-right">—</span>
+                        {# row 4: Home Value — display:contents makes children participate in grid #}
+                        <div id="bvr-legend-home-value" style="display:none">
+                            <span class="w-[13px]"></span>
+                            <span class="text-base-content/70">Home Value</span>
+                            <span id="bvr-legend-home-value-display" class="font-semibold tabular-nums text-base-content/90 text-right">—</span>
+                            <span id="bvr-legend-home-value-payoff" class="font-semibold tabular-nums text-base-content/50 text-right">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="sticky top-0 bg-base-200 z-10">
+                        <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
+                            <th class="pl-4 pr-2 py-2 text-left font-medium whitespace-nowrap">Yr</th>
+                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Home Value</th>
+                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buy/mo</th>
+                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buy Equity</th>
+                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buyer NW</th>
+                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Rent/mo</th>
+                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Renter NW</th>
+                            <th class="pl-2 pr-4 py-2 text-right font-medium whitespace-nowrap">Buy − Rent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bvr-tbody"></tbody>
+                </table>
+                </div>
+            </div>
+
+        </div>{# /bvr-analysis #}
+
+    </div>{# /right panel #}
+
+</div>
+
+{# Assumptions modal (mobile + desktop) #}
+<dialog id="bvr-assumptions-modal" class="modal">
+    <div class="modal-box max-w-sm w-[calc(100%-2rem)]">
+        <h3 class="font-bold text-lg mb-4">Assumptions</h3>
+        <div class="space-y-3">
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Home &amp; Buying</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="bvr-down-payment" class="text-base-content/70 font-medium whitespace-nowrap">Down Payment</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="bvr-down-payment" class="grow min-w-0" placeholder="0">
+                    </label>
+
+                    <label for="bvr-appreciation" class="text-base-content/70 font-medium whitespace-nowrap">Appreciation</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="bvr-appreciation" class="grow min-w-0" min="0" max="20" step="0.1" placeholder="3">
+                        <span class="text-base-content/60">%/yr</span>
+                    </label>
+
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Rent</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="bvr-monthly-rent" class="text-base-content/70 font-medium whitespace-nowrap">Monthly Rent</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="bvr-monthly-rent" class="grow min-w-0" placeholder="0">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+
+                    <label for="bvr-security-deposit" class="text-base-content/70 font-medium whitespace-nowrap">Security Deposit</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="text" inputmode="numeric" id="bvr-security-deposit" class="grow min-w-0" placeholder="0">
+                    </label>
+
+                    <label for="bvr-rent-increase" class="text-base-content/70 font-medium whitespace-nowrap">Rent Increase</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="bvr-rent-increase" class="grow min-w-0" min="0" max="20" step="0.1" placeholder="3">
+                        <span class="text-base-content/60">%/yr</span>
+                    </label>
+
+                    <label for="bvr-renter-insurance" class="text-base-content/70 font-medium whitespace-nowrap">Renter Insurance</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <span class="text-base-content/60">$</span>
+                        <input type="number" id="bvr-renter-insurance" class="grow min-w-0" min="0" step="1" placeholder="15">
+                        <span class="text-base-content/60 text-xs">/mo</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Taxes &amp; Investment</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="bvr-marginal-rate" class="text-base-content/70 font-medium whitespace-nowrap">Marginal Rate</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="bvr-marginal-rate" class="grow min-w-0" min="0" max="60" step="1" placeholder="22">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+
+                    <span class="text-base-content/70 font-medium whitespace-nowrap">Itemize</span>
+                    <label class="flex items-center gap-2 cursor-pointer py-0.5">
+                        <input type="checkbox" id="bvr-itemize" class="checkbox checkbox-sm">
+                        <span class="text-sm text-base-content/50">Deduct interest</span>
+                    </label>
+
+                    <label for="bvr-invest-return" class="text-base-content/70 font-medium whitespace-nowrap">Invest Return</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="number" id="bvr-invest-return" class="grow min-w-0" min="0" max="30" step="0.5" placeholder="7">
+                        <span class="text-base-content/60">%/yr</span>
+                    </label>
+                </div>
+                <p class="text-xs text-base-content/30 mt-2 leading-tight">
+                    Down payment + monthly savings invested at return rate.
+                </p>
+            </fieldset>
+        </div>
+        <div class="modal-action mt-4">
+            <form method="dialog"><button class="btn btn-primary w-full">Done</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="bvr-select-loan-modal" class="modal lg:hidden">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg mb-3">Select a Loan</h3>
+        <div id="bvr-mobile-loans-list" class="space-y-1 max-h-72 overflow-y-auto">
+            <p class="text-xs text-base-content/40 py-2">
+                No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
+            </p>
+        </div>
+        <div class="modal-action mt-3">
+            <form method="dialog"><button class="btn btn-ghost btn-sm">Close</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+{% include "_loan_detail_modal.html" %}
+{% include "_preview_panel.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
+<script src="{{ url_for('static', path='/mortgage-loan-detail.js') }}"></script>
+<script>
+    // STORAGE_KEY / SELECTED_KEY / loadLoans / escHtml / applyCommaFormat /
+    // fmtDollarField defined in mortgage-common.js
+    // fmtPct defined in mortgage-loan-detail.js
+    var BVR_ASSUMP_KEY     = 'bvr_assumptions';
+    var selectedLoanId     = null;
+    var bvrSortState       = { col: null, dir: 1 };
+    var lastBvrResults     = null;
+    var bvrChartData       = null;
+    var bvrChartLocked     = false;
+    var bvrLockedIdx       = null;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Utility
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function fmtCurrency(val) {
+        if (!val && val !== 0) return '—';
+        if (!isFinite(val) || isNaN(val)) return '—';
+        var sign = val < 0 ? '-' : '';
+        return sign + '$' + Math.abs(Math.round(val)).toLocaleString();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Loan Selection & Panel Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function selectLoan(id) {
+        selectedLoanId = id;
+        localStorage.setItem(SELECTED_KEY, id);
+
+        document.querySelectorAll('#bvr-loans-tbody tr[data-loan-id]').forEach(function(tr) {
+            var isSelected = Number(tr.getAttribute('data-loan-id')) === id;
+            tr.classList.toggle('bg-primary/15', isSelected);
+            tr.classList.toggle('border-l-2', isSelected);
+            tr.classList.toggle('border-l-primary', isSelected);
+            tr.classList.toggle('hover:bg-base-300/30', !isSelected);
+        });
+
+        var loans = loadLoans();
+        var loan  = loans.find(function(l) { return l.id === id; });
+        document.getElementById('bvr-loan-name').textContent = loan ? loan.name : '';
+
+        if (loan) {
+            document.getElementById('bvr-placeholder').style.display = 'none';
+            document.getElementById('bvr-analysis').classList.remove('hidden');
+            runAndRenderBvR();
+        } else {
+            document.getElementById('bvr-placeholder').style.display = '';
+            document.getElementById('bvr-analysis').classList.add('hidden');
+        }
+    }
+
+    function updateBvrSortHeaders() {
+        document.querySelectorAll('th[data-sort-key]').forEach(function(th) {
+            var key = th.getAttribute('data-sort-key');
+            var existing = th.querySelector('.sort-indicator');
+            if (existing) existing.remove();
+            if (bvrSortState.col === key) {
+                var span = document.createElement('span');
+                span.className = 'sort-indicator ml-1 opacity-70';
+                span.textContent = bvrSortState.dir === 1 ? '▲' : '▼';
+                th.appendChild(span);
+            }
+        });
+    }
+
+    document.querySelectorAll('th[data-sort-key]').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var key = this.getAttribute('data-sort-key');
+            if (bvrSortState.col === key) {
+                bvrSortState.dir *= -1;
+            } else {
+                bvrSortState.col = key;
+                bvrSortState.dir = 1;
+            }
+            renderLoans();
+        });
+    });
+
+    function renderLoans() {
+        var loans  = loadLoans();
+        var tbody  = document.getElementById('bvr-loans-tbody');
+        var empty  = document.getElementById('bvr-loans-empty');
+
+        tbody.querySelectorAll('tr:not(#bvr-loans-empty)').forEach(function(r) { r.remove(); });
+
+        if (loans.length === 0) {
+            empty.style.display = '';
+            updateBvrSortHeaders();
+            return;
+        }
+        empty.style.display = 'none';
+
+        if (bvrSortState.col) {
+            loans = loans.slice().sort(function(a, b) {
+                var av = a[bvrSortState.col], bv = b[bvrSortState.col];
+                if (typeof av === 'string') return av.localeCompare(bv) * bvrSortState.dir;
+                return (av - bv) * bvrSortState.dir;
+            });
+        }
+
+        loans.forEach(function(loan) {
+            var tr = document.createElement('tr');
+            tr.className = 'border-b border-base-300/50 hover:bg-base-300/30 transition-colors cursor-pointer';
+            tr.setAttribute('data-loan-id', loan.id);
+            tr.innerHTML =
+                '<td class="pl-4 pr-3 py-2 font-medium truncate" title="' + escHtml(loan.name) + '">' + escHtml(loan.name) + '</td>' +
+                '<td class="hidden xl:table-cell px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.loan_amount) + '</td>' +
+                '<td class="hidden 2xl:table-cell px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.pi) + '</td>' +
+                '<td class="pl-3 pr-4 py-2 text-right">' +
+                    '<button class="btn btn-xs btn-outline" data-view-id="' + loan.id + '">View</button>' +
+                '</td>';
+            tbody.appendChild(tr);
+
+            tr.addEventListener('click', function(e) {
+                if (e.target.closest('[data-view-id]')) return;
+                selectLoan(loan.id);
+            });
+        });
+
+        tbody.querySelectorAll('[data-view-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openLoanModal(Number(this.getAttribute('data-view-id')));
+            });
+        });
+
+        // Update mobile loan picker list
+        var mobileList = document.getElementById('bvr-mobile-loans-list');
+        if (mobileList) {
+            mobileList.innerHTML = '';
+            if (loans.length === 0) {
+                mobileList.innerHTML = '<p class="text-xs text-base-content/40 py-2">No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.</p>';
+            } else {
+                loans.forEach(function(loan) {
+                    var div = document.createElement('div');
+                    div.className = 'flex items-center gap-3 px-3 py-2 rounded cursor-pointer hover:bg-base-300/40 ' +
+                        (loan.id === selectedLoanId ? 'bg-primary/15 font-semibold' : '');
+                    div.innerHTML =
+                        '<span class="flex-1 truncate text-sm">' + escHtml(loan.name) + '</span>' +
+                        '<span class="text-xs text-base-content/60 tabular-nums shrink-0">' + fmtCurrency(loan.pi) + '/mo</span>';
+                    div.addEventListener('click', function() {
+                        selectLoan(loan.id);
+                        document.getElementById('bvr-select-loan-modal').close();
+                    });
+                    mobileList.appendChild(div);
+                });
+            }
+        }
+
+        // Restore persisted selection, fall back to first loan
+        if (loans.length > 0 && selectedLoanId === null) {
+            var savedId = Number(localStorage.getItem(SELECTED_KEY));
+            var match   = savedId && loans.find(function(l) { return l.id === savedId; });
+            selectLoan(match ? savedId : loans[0].id);
+        } else if (selectedLoanId !== null) {
+            selectLoan(selectedLoanId);
+        }
+
+        updateBvrSortHeaders();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Assumptions Storage
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function defaultAssumptions() {
+        return {
+            downPayment:     '',
+            appreciation:    3,
+            monthlyRent:     '',
+            securityDeposit: '',
+            rentIncrease:    3,
+            renterInsurance: 15,
+            marginalRate:    22,
+            itemize:         false,
+            investReturn:    7
+        };
+    }
+
+    function loadAssumptions() {
+        try {
+            var raw = localStorage.getItem(BVR_ASSUMP_KEY);
+            if (raw) return Object.assign(defaultAssumptions(), JSON.parse(raw));
+        } catch(e) {}
+        return defaultAssumptions();
+    }
+
+    function saveAssumptions(obj) {
+        localStorage.setItem(BVR_ASSUMP_KEY, JSON.stringify(obj));
+    }
+
+    function populateInputs(a) {
+        document.getElementById('bvr-down-payment').value     = a.downPayment !== '' ? fmtDollarField(a.downPayment) : '';
+        document.getElementById('bvr-appreciation').value     = a.appreciation;
+        document.getElementById('bvr-monthly-rent').value     = a.monthlyRent !== '' ? fmtDollarField(a.monthlyRent) : '';
+        document.getElementById('bvr-security-deposit').value = a.securityDeposit !== '' ? fmtDollarField(a.securityDeposit) : '';
+        document.getElementById('bvr-rent-increase').value    = a.rentIncrease;
+        document.getElementById('bvr-renter-insurance').value = a.renterInsurance;
+        document.getElementById('bvr-marginal-rate').value    = a.marginalRate;
+        document.getElementById('bvr-itemize').checked        = !!a.itemize;
+        document.getElementById('bvr-invest-return').value    = a.investReturn;
+    }
+
+    function readInputs() {
+        return {
+            downPayment:     parseFloat(document.getElementById('bvr-down-payment').value.replace(/,/g, ''))     || 0,
+            appreciation:    parseFloat(document.getElementById('bvr-appreciation').value)     || 3,
+            monthlyRent:     parseFloat(document.getElementById('bvr-monthly-rent').value.replace(/,/g, ''))     || 0,
+            securityDeposit: parseFloat(document.getElementById('bvr-security-deposit').value.replace(/,/g, '')) || 0,
+            rentIncrease:    parseFloat(document.getElementById('bvr-rent-increase').value)    || 3,
+            renterInsurance: parseFloat(document.getElementById('bvr-renter-insurance').value) || 15,
+            marginalRate:    parseFloat(document.getElementById('bvr-marginal-rate').value)    || 0,
+            itemize:         document.getElementById('bvr-itemize').checked,
+            investReturn:    parseFloat(document.getElementById('bvr-invest-return').value)    || 7
+        };
+    }
+
+    function maybeAutoFillSecurityDeposit() {
+        var secInput  = document.getElementById('bvr-security-deposit');
+        var rentInput = document.getElementById('bvr-monthly-rent');
+        if (!secInput.value) {
+            var rent = parseFloat(rentInput.value.replace(/,/g, '')) || 0;
+            if (rent > 0) secInput.value = fmtDollarField(Math.round(rent * 2));
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Calculation Engine
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function runBvR(loan, a) {
+        var termMonths   = Math.round((loan.term_years || 30) * 12);
+        var monthlyRate  = (loan.interest || 0) / 100 / 12;
+        var pi           = loan.pi || 0;
+        var propTaxMo    = loan.prop_tax || 0;           // stored as $/mo
+        var hoaMo        = loan.hoa || 0;                // stored as $/mo
+        var insuranceMo  = (loan.insurance || 0) / 12;  // stored as $/yr → convert to $/mo
+        var closing      = loan.closing || 0;
+
+        var downPayment  = a.downPayment  || 0;
+        var homeValue0   = loan.loan_amount + downPayment;
+        var appRateMo    = a.appreciation  / 100 / 12;
+
+        var rent0        = a.monthlyRent     || 0;
+        var secDep       = a.securityDeposit || 0;
+        var rentIncrYr   = a.rentIncrease    / 100;
+        var renterInsMo  = a.renterInsurance || 0;
+
+        var margRate     = a.marginalRate / 100;
+        var itemize      = !!a.itemize;
+        var investRMo    = a.investReturn / 100 / 12;
+
+        // Both parties start with the same cash: C0 = down payment + closing costs.
+        // Buyer converts it immediately to housing equity.
+        // Renter invests it (minus security deposit which is illiquid).
+        var C0        = downPayment + closing;
+        var portfolio = C0 - secDep;  // renter's starting investable capital
+
+        var balance     = loan.loan_amount;
+        var hv          = homeValue0;
+        var buyCumCost  = C0;  // cumulative cash outflows (upfront + ongoing non-equity costs)
+
+        var yearly      = [];
+        var breakEvenYear = null;
+        var lastBuyNW   = null, lastRentNW = null;
+
+        for (var m = 1; m <= termMonths; m++) {
+            // ── Amortization ──────────────────────────────────────────────
+            var intPortion  = balance * monthlyRate;
+            var prinPortion = Math.max(0, pi - intPortion);
+            balance = Math.max(0, balance - prinPortion);
+
+            // ── Home appreciation ─────────────────────────────────────────
+            hv *= (1 + appRateMo);
+
+            // ── Current rent (annual compounding, fractional year index) ──
+            var rentNow = rent0 * Math.pow(1 + rentIncrYr, (m - 1) / 12);
+
+            // ── Monthly buy cost (non-equity outflows) ────────────────────
+            // Tax saving applies only when itemizing (mortgage interest deduction).
+            var taxSave  = itemize ? intPortion * margRate : 0;
+            var buyMoCost = pi + propTaxMo + hoaMo + insuranceMo - taxSave;
+            buyCumCost   += buyMoCost;
+
+            // ── Monthly rent cost ─────────────────────────────────────────
+            var rentMoCost = rentNow + renterInsMo;
+
+            // ── Renter portfolio ──────────────────────────────────────────
+            // Each month: compound existing portfolio, then deposit the difference
+            // between what the buyer paid (non-equity) and what the renter paid.
+            // Positive surplus → renter invests savings vs buyer. Negative → draw down.
+            var surplus = buyMoCost - rentMoCost;
+            portfolio   = portfolio * (1 + investRMo) + surplus;
+
+            // ── Net worth ─────────────────────────────────────────────────
+            // Buyer: liquidation value of home minus outstanding balance.
+            var saleNet = hv - balance;
+            var buyNW   = saleNet - buyCumCost;
+            // Renter: portfolio is the net wealth position (already net of initial C0 invested).
+            var rentNW  = portfolio;
+
+            if (breakEvenYear === null && buyNW > rentNW) {
+                breakEvenYear = Math.ceil(m / 12);
+            }
+
+            if (m % 12 === 0 || m === termMonths) {
+                yearly.push({
+                    year:      Math.ceil(m / 12),
+                    buyNW:     buyNW,
+                    rentNW:    rentNW,
+                    homeValue: hv,
+                    equity:    saleNet,
+                    portfolio: portfolio,
+                    buyMoCost: buyMoCost,
+                    rentMoCost: rentMoCost
+                });
+            }
+
+            lastBuyNW  = buyNW;
+            lastRentNW = rentNW;
+        }
+
+        return {
+            yearly:        yearly,
+            breakEvenYear: breakEvenYear,
+            termYears:     Math.ceil(termMonths / 12),
+            finalBuyNW:    lastBuyNW,
+            finalRentNW:   lastRentNW
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SVG Chart Helpers
+    // ═══════════════════════════════════════════════════════════════════════════
+    // svgEl / buildSvgPath defined in mortgage-loan-detail.js
+
+    function niceTicks(minVal, maxVal, count) {
+        if (maxVal === minVal) { return [minVal - 1, minVal, minVal + 1]; }
+        var range    = maxVal - minVal;
+        var rough    = range / count;
+        var absRough = Math.abs(rough) || 1;
+        var mag      = Math.pow(10, Math.floor(Math.log10(absRough)));
+        var n        = rough / mag;
+        var nice     = Math.abs(n) < 1.5 ? 1 : Math.abs(n) < 3.5 ? 2 : Math.abs(n) < 7.5 ? 5 : 10;
+        var step     = nice * mag;
+        var start    = Math.floor(minVal / step) * step;
+        var end      = (Math.floor(maxVal / step) + 1) * step;
+        var ticks    = [];
+        for (var v = start; v <= end + step * 0.01; v += step) {
+            ticks.push(Math.round(v / step) * step);
+        }
+        return ticks;
+    }
+
+    function fmtYAxis(val) {
+        var abs  = Math.abs(val);
+        var sign = val < 0 ? '-' : '';
+        if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (abs >= 1000) return sign + '$' + Math.round(abs / 1000) + 'k';
+        return sign + '$' + Math.round(abs);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Chart Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderBvrChart(results) {
+        var svg = document.getElementById('bvr-chart');
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        if (!results || !results.yearly.length) return;
+        var yearly = results.yearly;
+
+        var container = document.getElementById('bvr-chart-wrap');
+        var W = container.clientWidth;
+        var H = container.clientHeight;
+        if (W < 50 || H < 50) return;
+
+        var mg = { t: 14, r: 14, b: 28, l: 64 };
+        var cW = W - mg.l - mg.r;
+        var cH = H - mg.t - mg.b;
+        var n  = yearly.length;
+
+        // Y range across both curves
+        var allNW = [];
+        yearly.forEach(function(d) { allNW.push(d.buyNW); allNW.push(d.rentNW); });
+        var rawMin = Math.min.apply(null, allNW);
+        var rawMax = Math.max.apply(null, allNW);
+        var yTicks = niceTicks(rawMin, rawMax, 5);
+        var yMin   = yTicks[0];
+        var yMax   = yTicks[yTicks.length - 1];
+
+        function xS(i) { return mg.l + (i / Math.max(n - 1, 1)) * cW; }
+        function yS(v) { return mg.t + cH * (1 - (v - yMin) / (yMax - yMin)); }
+
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+        // Clip path
+        var defs = svgEl('defs');
+        var clip = svgEl('clipPath', { id: 'bvr-clip' });
+        clip.appendChild(svgEl('rect', { x: mg.l, y: mg.t, width: cW, height: cH }));
+        defs.appendChild(clip);
+        svg.appendChild(defs);
+
+        // Y grid + labels
+        yTicks.forEach(function(tick) {
+            var y      = yS(tick);
+            var isZero = Math.abs(tick) < Math.abs(yMax - yMin) * 0.001;
+            svg.appendChild(svgEl('line', {
+                x1: mg.l, y1: y, x2: mg.l + cW, y2: y,
+                stroke: isZero ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)',
+                'stroke-width': isZero ? '1.5' : '1',
+                'stroke-dasharray': isZero ? '4,3' : ''
+            }));
+            var lbl = svgEl('text', {
+                x: mg.l - 5, y: y, 'text-anchor': 'end',
+                'dominant-baseline': 'middle', fill: 'rgba(255,255,255,0.35)', 'font-size': '10'
+            });
+            lbl.textContent = fmtYAxis(tick);
+            svg.appendChild(lbl);
+        });
+
+        // X axis tick + year label
+        var yearStep = n <= 10 ? 1 : n <= 20 ? 2 : 5;
+        for (var i = 0; i < n; i += yearStep) {
+            var xPos = xS(i);
+            svg.appendChild(svgEl('line', {
+                x1: xPos, y1: mg.t + cH, x2: xPos, y2: mg.t + cH + 3,
+                stroke: 'rgba(255,255,255,0.2)', 'stroke-width': '1'
+            }));
+            var xl = svgEl('text', {
+                x: xPos, y: mg.t + cH + 13,
+                'text-anchor': 'middle', fill: 'rgba(255,255,255,0.35)', 'font-size': '10'
+            });
+            xl.textContent = 'Yr' + yearly[i].year;
+            svg.appendChild(xl);
+        }
+
+        // Break-even vertical dashed line
+        if (results.breakEvenYear !== null) {
+            var beIdx = -1;
+            for (var j = 0; j < yearly.length; j++) {
+                if (yearly[j].year >= results.breakEvenYear) { beIdx = j; break; }
+            }
+            if (beIdx >= 0) {
+                var bex = xS(beIdx);
+                svg.appendChild(svgEl('line', {
+                    x1: bex, y1: mg.t, x2: bex, y2: mg.t + cH,
+                    stroke: 'rgba(250,204,21,0.5)', 'stroke-width': '1.5',
+                    'stroke-dasharray': '5,3'
+                }));
+                var beLbl = svgEl('text', {
+                    x: bex + 4, y: mg.t + 8,
+                    fill: 'rgba(250,204,21,0.65)', 'font-size': '9',
+                    'dominant-baseline': 'middle'
+                });
+                beLbl.textContent = 'break-even yr ' + results.breakEvenYear;
+                svg.appendChild(beLbl);
+            }
+        }
+
+        // Buyer net worth curve (blue)
+        var buyPts = yearly.map(function(d, i) { return [xS(i), yS(d.buyNW)]; });
+        svg.appendChild(svgEl('path', {
+            d: buildSvgPath(buyPts), fill: 'none',
+            stroke: '#60a5fa', 'stroke-width': '2',
+            'clip-path': 'url(#bvr-clip)'
+        }));
+
+        // Renter net worth curve (green)
+        var rentPts = yearly.map(function(d, i) { return [xS(i), yS(d.rentNW)]; });
+        svg.appendChild(svgEl('path', {
+            d: buildSvgPath(rentPts), fill: 'none',
+            stroke: '#4ade80', 'stroke-width': '2',
+            'clip-path': 'url(#bvr-clip)'
+        }));
+
+        // Hover group (hidden until mousemove)
+        var hg = svgEl('g', { id: 'bvr-hover' });
+        hg.style.display = 'none';
+        hg.appendChild(svgEl('line', {
+            id: 'bvr-hover-vline', x1: 0, y1: mg.t, x2: 0, y2: mg.t + cH,
+            stroke: 'rgba(255,255,255,0.45)', 'stroke-width': '1', 'stroke-dasharray': '4 3'
+        }));
+        hg.appendChild(svgEl('circle', { id: 'bvr-hc-buy',  r: '4.5', fill: '#60a5fa', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        hg.appendChild(svgEl('circle', { id: 'bvr-hc-rent', r: '4.5', fill: '#4ade80', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        svg.appendChild(hg);
+
+        // Transparent overlay for mouse events
+        var overlay = svgEl('rect', { x: mg.l, y: mg.t, width: cW, height: cH, fill: 'transparent', cursor: 'crosshair' });
+        overlay.addEventListener('mousemove', onBvrChartHover);
+        overlay.addEventListener('mouseleave', onBvrChartLeave);
+        overlay.addEventListener('click', onBvrChartClick);
+        svg.appendChild(overlay);
+
+        // Store chart state for hover handlers
+        bvrChartData    = { W: W, H: H, mg: mg, cW: cW, cH: cH, xS: xS, yS: yS, yearly: yearly };
+        bvrChartLocked  = false;
+
+        // Restore pinned position if one was locked before this render
+        if (bvrLockedIdx !== null && bvrLockedIdx < yearly.length) {
+            bvrChartLocked = true;
+            bvrApplyCrosshair(bvrLockedIdx);
+            document.getElementById('bvr-legend-pin-badge').classList.remove('hidden');
+        } else {
+            bvrLockedIdx = null;
+            document.getElementById('bvr-legend-pin-badge').classList.add('hidden');
+            // Default legend = last year
+            updateBvrLegend(yearly[yearly.length - 1]);
+        }
+        document.getElementById('bvr-chart-legend').classList.remove('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Chart Interaction
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function updateBvrLegend(entry) {
+        var yearEl     = document.getElementById('bvr-legend-year');
+        var advLabelEl = document.getElementById('bvr-legend-adv-label');
+        var advValEl   = document.getElementById('bvr-legend-adv-val');
+        if (!entry) {
+            if (yearEl) yearEl.textContent = '—';
+            document.getElementById('bvr-legend-buy').textContent  = '—';
+            document.getElementById('bvr-legend-rent').textContent = '—';
+            document.getElementById('bvr-legend-home-value-display').textContent = '—';
+            return;
+        }
+        if (yearEl) yearEl.textContent = entry.year;
+        var delta = entry.buyNW - entry.rentNW;
+        document.getElementById('bvr-legend-buy').textContent  = fmtCurrency(entry.buyNW);
+        document.getElementById('bvr-legend-rent').textContent = fmtCurrency(entry.rentNW);
+        document.getElementById('bvr-legend-home-value-display').textContent = fmtCurrency(entry.homeValue);
+        if (advLabelEl && advValEl) {
+            if (delta > 0) {
+                advLabelEl.textContent = 'Buying adv';
+                advValEl.textContent   = fmtCurrency(delta);
+                advValEl.className     = 'font-semibold tabular-nums text-success';
+            } else if (delta < 0) {
+                advLabelEl.textContent = 'Renting adv';
+                advValEl.textContent   = fmtCurrency(-delta);
+                advValEl.className     = 'font-semibold tabular-nums text-success';
+            } else {
+                advLabelEl.textContent = 'Break even';
+                advValEl.textContent   = '';
+                advValEl.className     = '';
+            }
+        }
+    }
+
+    function bvrSnapToIdx(clientX) {
+        var svgElem = document.getElementById('bvr-chart');
+        var rect    = svgElem.getBoundingClientRect();
+        var svgX    = (clientX - rect.left) * (bvrChartData.W / rect.width);
+        var relX    = svgX - bvrChartData.mg.l;
+        var n       = bvrChartData.yearly.length;
+        var idx     = Math.round(relX / bvrChartData.cW * (n - 1));
+        return Math.max(0, Math.min(n - 1, idx));
+    }
+
+    function bvrApplyCrosshair(idx) {
+        var entry = bvrChartData.yearly[idx];
+        var x     = bvrChartData.xS(idx);
+        var hg    = document.getElementById('bvr-hover');
+        hg.style.display = '';
+        document.getElementById('bvr-hover-vline').setAttribute('x1', x.toFixed(1));
+        document.getElementById('bvr-hover-vline').setAttribute('x2', x.toFixed(1));
+        document.getElementById('bvr-hc-buy').setAttribute('cx',  x.toFixed(1));
+        document.getElementById('bvr-hc-buy').setAttribute('cy',  bvrChartData.yS(entry.buyNW).toFixed(1));
+        document.getElementById('bvr-hc-rent').setAttribute('cx', x.toFixed(1));
+        document.getElementById('bvr-hc-rent').setAttribute('cy', bvrChartData.yS(entry.rentNW).toFixed(1));
+        updateBvrLegend(entry);
+    }
+
+    function onBvrChartHover(e) {
+        if (bvrChartLocked || !bvrChartData) return;
+        bvrApplyCrosshair(bvrSnapToIdx(e.clientX));
+    }
+
+    function onBvrChartLeave() {
+        if (bvrChartLocked) return;
+        var hg = document.getElementById('bvr-hover');
+        if (hg) hg.style.display = 'none';
+        if (bvrChartData && bvrChartData.yearly.length) {
+            updateBvrLegend(bvrChartData.yearly[bvrChartData.yearly.length - 1]);
+        }
+    }
+
+    function onBvrChartClick(e) {
+        if (!bvrChartData) return;
+        var badge = document.getElementById('bvr-legend-pin-badge');
+        if (bvrChartLocked) {
+            bvrChartLocked = false;
+            bvrLockedIdx   = null;
+            badge.classList.add('hidden');
+            return;
+        }
+        var idx        = bvrSnapToIdx(e.clientX);
+        bvrChartLocked = true;
+        bvrLockedIdx   = idx;
+        bvrApplyCrosshair(idx);
+        badge.classList.remove('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Callout Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderBvrCallout(results) {
+        var iconEl     = document.getElementById('bvr-callout-icon');
+        var textEl     = document.getElementById('bvr-callout-text');
+        var buyPayoff  = document.getElementById('bvr-legend-buy-payoff');
+        var rentPayoff = document.getElementById('bvr-legend-rent-payoff');
+        var hvPayoff   = document.getElementById('bvr-legend-home-value-payoff');
+        var advInline  = document.getElementById('bvr-legend-adv-inline');
+
+        if (!results) {
+            iconEl.textContent = '';
+            textEl.className   = 'text-base-content/50 text-sm';
+            textEl.textContent = 'Enter a down payment and monthly rent to see the analysis.';
+            if (buyPayoff)  buyPayoff.textContent  = '—';
+            if (rentPayoff) rentPayoff.textContent = '—';
+            if (hvPayoff)   hvPayoff.textContent   = '—';
+            if (advInline)  advInline.classList.add('hidden');
+            return;
+        }
+
+        var fb = results.finalBuyNW, fr = results.finalRentNW;
+        var fhv = results.yearly.length ? results.yearly[results.yearly.length - 1].homeValue : null;
+
+        if (results.breakEvenYear !== null) {
+            iconEl.textContent = '✓';
+            textEl.className   = 'text-success font-semibold text-sm';
+            textEl.textContent = 'Buying breaks even at year ' + results.breakEvenYear + '.';
+        } else if (fb !== null && fr !== null && fb > fr) {
+            iconEl.textContent = '✓';
+            textEl.className   = 'text-success font-semibold text-sm';
+            textEl.textContent = 'Buying is ahead at payoff (year ' + results.termYears + ').';
+        } else {
+            iconEl.textContent = '✗';
+            textEl.className   = 'text-error font-semibold text-sm';
+            textEl.textContent = 'Renting stays ahead through the full ' + results.termYears + '-year term.';
+        }
+
+        if (buyPayoff)  buyPayoff.textContent  = fb  !== null ? fmtCurrency(fb)  : '—';
+        if (rentPayoff) rentPayoff.textContent = fr  !== null ? fmtCurrency(fr)  : '—';
+        if (hvPayoff)   hvPayoff.textContent   = fhv !== null ? fmtCurrency(fhv) : '—';
+        if (advInline)  advInline.classList.remove('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Table Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderBvrTable(results) {
+        var tbody = document.getElementById('bvr-tbody');
+        tbody.innerHTML = '';
+        if (!results || !results.yearly.length) return;
+
+        results.yearly.forEach(function(row) {
+            var delta       = row.buyNW - row.rentNW;
+            var deltaClass  = delta >= 0 ? 'text-success' : 'text-error';
+            var deltaPrefix = delta >= 0 ? '+' : '';
+            var isBreakEven = results.breakEvenYear !== null && results.breakEvenYear === row.year;
+            var tr = document.createElement('tr');
+            tr.className = 'border-b border-base-300/50 hover:bg-base-300/20' + (isBreakEven ? ' bg-success/5' : '');
+            tr.innerHTML =
+                '<td class="pl-4 pr-2 py-1.5 font-medium tabular-nums whitespace-nowrap">' + row.year + (isBreakEven ? ' <span class="text-success text-xs font-normal">←</span>' : '') + '</td>' +
+                '<td class="px-2 py-1.5 text-right tabular-nums text-base-content/60 whitespace-nowrap">' + fmtCurrency(row.homeValue) + '</td>' +
+                '<td class="px-2 py-1.5 text-right tabular-nums text-base-content/60 whitespace-nowrap">' + fmtCurrency(row.buyMoCost) + '</td>' +
+                '<td class="px-2 py-1.5 text-right tabular-nums text-base-content/70 whitespace-nowrap">' + fmtCurrency(row.equity) + '</td>' +
+                '<td class="px-2 py-1.5 text-right tabular-nums font-medium whitespace-nowrap ' + (row.buyNW >= 0 ? 'text-base-content/90' : 'text-base-content/50') + '">' + fmtCurrency(row.buyNW) + '</td>' +
+                '<td class="px-2 py-1.5 text-right tabular-nums text-base-content/60 whitespace-nowrap">' + fmtCurrency(row.rentMoCost) + '</td>' +
+                '<td class="px-2 py-1.5 text-right tabular-nums font-medium whitespace-nowrap">' + fmtCurrency(row.rentNW) + '</td>' +
+                '<td class="pl-2 pr-4 py-1.5 text-right tabular-nums font-semibold whitespace-nowrap ' + deltaClass + '">' + deltaPrefix + fmtCurrency(delta) + '</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Home Value Header
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function updateHomeValueHeader(loan, a) {
+        var wrap = document.getElementById('bvr-legend-home-value');
+        var dp = a.downPayment || 0;
+        wrap.style.display = (dp > 0 && loan) ? 'contents' : 'none';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Orchestrator: read inputs → save → calculate → render
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function runAndRenderBvR() {
+        if (selectedLoanId === null) return;
+        var loans = loadLoans();
+        var loan  = loans.find(function(l) { return l.id === selectedLoanId; });
+        if (!loan) return;
+
+        var a = readInputs();
+        saveAssumptions(a);
+        updateHomeValueHeader(loan, a);
+
+        if (!a.downPayment || !a.monthlyRent) {
+            lastBvrResults = null;
+            bvrChartData   = null;
+            bvrChartLocked = false;
+            renderBvrCallout(null);
+            var svg = document.getElementById('bvr-chart');
+            while (svg.firstChild) svg.removeChild(svg.firstChild);
+            document.getElementById('bvr-chart-legend').classList.add('hidden');
+            document.getElementById('bvr-tbody').innerHTML = '';
+            return;
+        }
+
+        var results    = runBvR(loan, a);
+        lastBvrResults = results;
+        renderBvrCallout(results);
+        renderBvrTable(results);
+        requestAnimationFrame(function() { renderBvrChart(results); });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Input event listeners
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    var bvrInputIds = [
+        'bvr-down-payment', 'bvr-appreciation',
+        'bvr-monthly-rent', 'bvr-security-deposit', 'bvr-rent-increase', 'bvr-renter-insurance',
+        'bvr-marginal-rate', 'bvr-invest-return'
+    ];
+
+    bvrInputIds.forEach(function(id) {
+        document.getElementById(id).addEventListener('input', function() {
+            if (id === 'bvr-down-payment') {
+                applyCommaFormat(this);
+            }
+            if (id === 'bvr-monthly-rent') {
+                applyCommaFormat(this);
+                // When rent changes and security deposit is empty, auto-fill 2× rent
+                var secInput = document.getElementById('bvr-security-deposit');
+                if (!secInput.value) {
+                    var rent = parseFloat(this.value.replace(/,/g, '')) || 0;
+                    if (rent > 0) secInput.value = fmtDollarField(Math.round(rent * 2));
+                }
+            }
+            if (id === 'bvr-security-deposit') {
+                applyCommaFormat(this);
+            }
+            runAndRenderBvR();
+        });
+    });
+
+    document.getElementById('bvr-itemize').addEventListener('change', runAndRenderBvR);
+
+    // Re-render chart on resize
+    if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(function() {
+            if (lastBvrResults) {
+                requestAnimationFrame(function() { renderBvrChart(lastBvrResults); });
+            }
+        }).observe(document.getElementById('bvr-chart-wrap'));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Loan Detail Modal (preview panel + modal)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // fmtPreview / setPreviewVal defined in mortgage-common.js
+    // openLoanModal + loan-detail-modal close listener + floating preview
+    // panel drag/toggle defined in mortgage-loan-detail.js
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Init
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    populateInputs(loadAssumptions());
+    maybeAutoFillSecurityDeposit();
+    renderLoans();
+
+</script>
+
+<style>
+    #bvr-assumptions-modal .modal-box {
+        max-height: calc(100dvh - 5em);
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
