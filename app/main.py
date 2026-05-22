@@ -31,6 +31,31 @@ def get_version():
         "git_commit": GIT_COMMIT,
     }
 
+def _amortization_response(request: Request, initial_tab: str | None = None):
+    return templates.TemplateResponse(
+        request=request,
+        name="amortization.html",
+        context={
+            "request": request,
+            "logged_in_as": "",
+            "version": VERSION,
+            "git_commit": GIT_COMMIT,
+            "initial_tab": initial_tab or "",
+        }
+    )
+
+@app.get("/amortization", response_class=HTMLResponse)
+def get_amortization_page(request: Request):
+    return _amortization_response(request)
+
+@app.get("/amortization/graph", response_class=HTMLResponse)
+def get_amortization_graph_page(request: Request):
+    return _amortization_response(request, initial_tab="graph")
+
+@app.get("/amortization/schedule", response_class=HTMLResponse)
+def get_amortization_schedule_page(request: Request):
+    return _amortization_response(request, initial_tab="schedule")
+
 @app.get("/", response_class=HTMLResponse)
 def get_home_page(request: Request):
     user_email = request.state.user_email

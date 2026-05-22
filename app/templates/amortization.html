@@ -1,0 +1,1592 @@
+{% extends "base.html" %}
+
+{% block title %}Amortization — Mortgage Calculator{% endblock %}
+
+{% block content %}
+<div class="py-4 flex gap-4 h-[calc(100vh-8rem)]">
+
+    {# Left column: ~1/3 #}
+    <div class="w-1/3 flex flex-col min-h-0">
+        <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300">
+            <h2 class="text-xl font-bold tracking-wide">Loans</h2>
+        </div>
+        <div class="bg-base-200 rounded-b flex-1 overflow-y-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
+                        <th class="pl-4 pr-3 py-2 text-left font-medium cursor-pointer select-none" data-sort-key="name">Name </th>
+                        <th class="px-3 py-2 text-right font-medium cursor-pointer select-none" data-sort-key="loan_amount">Loan Amt </th>
+                        <th class="px-3 py-2 text-right font-medium cursor-pointer select-none" data-sort-key="pi">P&amp;I/mo </th>
+                        <th class="pl-3 pr-4 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody id="amort-loans-tbody">
+                    <tr id="amort-loans-empty">
+                        <td colspan="4" class="pl-4 pr-4 py-6 text-center text-base-content/40 text-xs">
+                            No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# Right column: ~2/3 #}
+    <div class="flex-1 flex flex-col min-h-0">
+
+        {# Tab bar #}
+        <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300 flex items-center gap-2">
+            <button
+                id="tab-graph"
+                onclick="switchTab('graph')"
+                class="px-3 py-1 rounded text-sm font-medium border border-base-content">
+                Graph
+            </button>
+            <button
+                id="tab-schedule"
+                onclick="switchTab('schedule')"
+                class="px-3 py-1 rounded text-sm font-medium border border-transparent hover:border-base-content/40">
+                Schedule
+            </button>
+        </div>
+
+        {# Graph panel #}
+        <div id="panel-graph" class="bg-base-200 rounded-b flex-1 flex flex-col min-h-0">
+
+            {# Header: loan name + summary stats #}
+            <div class="px-6 py-3 border-b border-base-300 shrink-0">
+                <h2 id="graph-loan-name" class="text-xl font-bold tracking-wide text-base-content/80"></h2>
+                <div id="graph-summary" class="mt-2 hidden">
+                    <div class="space-y-1.5">
+                        <div class="flex gap-8 text-sm flex-wrap">
+                            <span class="text-base-content/50">Loan Amount <span id="graph-loan-amount" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                            <span class="text-base-content/50">Interest Rate <span id="graph-interest-rate" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        </div>
+                        <div class="flex gap-8 text-sm">
+                            <span class="text-base-content/50">Total Interest <span id="graph-total-interest" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                            <span class="text-base-content/50">Closing Costs <span id="graph-closing-costs" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                            <span class="text-base-content/50">Total Cost <span id="graph-cost-of-loan" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        </div>
+                        <div class="flex gap-8 text-sm">
+                            <span class="text-base-content/50">Payoff Date <span id="graph-payoff-date" class="font-medium text-base-content/80 ml-1"></span></span>
+                            <span class="text-base-content/50">Remaining Payments <span id="graph-remaining-payments" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# SVG chart area — fills remaining vertical space #}
+            <div id="graph-chart-container" class="flex-1 min-h-0 relative" style="min-height:180px">
+                <svg id="amort-chart" style="position:absolute;inset:0;width:100%;height:100%;display:block"></svg>
+            </div>
+
+            {# Bottom row: interactive legend (left) + additional payments (right) — fixed h-40 so the chart above never shrinks #}
+            <div class="flex items-stretch border-t border-base-300 shrink-0 h-40 overflow-hidden">
+
+                {# Legend #}
+                <div class="px-5 py-3 border-r border-base-300 shrink-0 flex flex-col justify-center" style="min-width:300px">
+                    <div class="mb-2.5">
+                        <div class="text-sm text-base-content/50">At cursor position: <span id="legend-date" class="text-base-content/60 font-medium">—</span></div>
+                        <span id="legend-pin-badge" class="hidden text-xs text-base-content/40">(pinned — click to release)</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <svg width="13" height="13" class="shrink-0"><circle cx="6.5" cy="6.5" r="5.5" fill="#f87171"/></svg>
+                            <span class="text-sm text-base-content/70 flex-1">Interest Paid</span>
+                            <span id="legend-interest" class="text-sm font-semibold tabular-nums text-base-content/90">—</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg width="13" height="13" class="shrink-0"><circle cx="6.5" cy="6.5" r="5.5" fill="#4ade80"/></svg>
+                            <span class="text-sm text-base-content/70 flex-1">Principal Paid</span>
+                            <span id="legend-principal" class="text-sm font-semibold tabular-nums text-base-content/90">—</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg width="13" height="13" class="shrink-0"><circle cx="6.5" cy="6.5" r="5.5" fill="#60a5fa"/></svg>
+                            <span class="text-sm text-base-content/70 flex-1">Loan Balance</span>
+                            <span id="legend-balance" class="text-sm font-semibold tabular-nums text-base-content/90">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                {# Graph settings + Additional payments (graph tab) #}
+                <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+                    {# Graph settings — collapsible, shares SCHEDULE_SETTINGS_KEY #}
+                    <div class="border-b border-base-300">
+                        <button id="graph-settings-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
+                            <svg id="graph-settings-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                            <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Graph Settings</span>
+                            <span id="graph-settings-badge" class="ml-2 text-xs text-base-content/50 font-medium hidden"></span>
+                        </button>
+                        <div id="graph-settings-body" class="hidden px-6 py-3 bg-base-100/50">
+                            <div class="flex items-center gap-6 text-sm flex-wrap">
+                                <label class="flex items-center gap-2">
+                                    <span class="text-base-content/60 whitespace-nowrap">Start date</span>
+                                    <select id="graph-start-month" class="select select-xs select-bordered">
+                                        <option value="1">Jan</option><option value="2">Feb</option>
+                                        <option value="3">Mar</option><option value="4">Apr</option>
+                                        <option value="5">May</option><option value="6">Jun</option>
+                                        <option value="7">Jul</option><option value="8">Aug</option>
+                                        <option value="9">Sep</option><option value="10">Oct</option>
+                                        <option value="11">Nov</option><option value="12">Dec</option>
+                                    </select>
+                                    <input type="number" id="graph-start-year" class="input input-bordered input-xs w-20" min="2000" max="2100" placeholder="2026">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Additional payments — same storage as schedule tab #}
+                    <div>
+                        <button id="graph-extra-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
+                            <svg id="graph-extra-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                            <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Additional Payments</span>
+                            <span id="graph-extra-badge" class="ml-2 text-xs text-success font-medium hidden"></span>
+                        </button>
+                        <div id="graph-extra-body" class="hidden bg-base-100/50">
+                            <div id="graph-extra-list"></div>
+                            <div class="px-6 py-2 border-t border-base-300/30">
+                                <button id="graph-add-extra-btn" class="btn btn-xs btn-ghost text-base-content/50 hover:text-base-content gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+                                    Add payment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        {# Schedule panel #}
+        <div id="panel-schedule" class="bg-base-200 rounded-b flex-1 overflow-y-auto flex flex-col min-h-0 hidden">
+            <div class="px-6 pt-3 pb-3 border-b border-base-300">
+                <h2 id="schedule-loan-name" class="text-xl font-bold tracking-wide text-base-content/80"></h2>
+                <div id="schedule-summary" class="mt-2 space-y-1.5">
+                    <div class="flex gap-8 text-sm flex-wrap">
+                        <span class="text-base-content/50">Loan Amount <span id="schedule-loan-amount" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        <span class="text-base-content/50">Interest Rate <span id="schedule-interest-rate" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        <span id="schedule-down-payment-wrap" class="text-base-content/50 hidden">Down Payment <span id="schedule-down-payment" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                    </div>
+                    <div class="flex gap-8 text-sm">
+                        <span class="text-base-content/50">Total Interest <span id="schedule-total-interest" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        <span class="text-base-content/50">Closing Costs <span id="schedule-closing-costs" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                        <span class="text-base-content/50">Total Cost <span id="schedule-cost-of-loan" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                    </div>
+                    <div class="flex gap-8 text-sm">
+                        <span class="text-base-content/50">Payoff Date <span id="schedule-payoff-date" class="font-medium text-base-content/80 ml-1"></span></span>
+                        <span class="text-base-content/50">Remaining Payments <span id="schedule-remaining-payments" class="font-medium text-base-content/80 tabular-nums ml-1"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            {# Schedule settings — collapsible #}
+            <div class="border-b border-base-300">
+                <button id="sched-settings-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
+                    <svg id="sched-settings-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                    <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Schedule Settings</span>
+                    <span id="sched-settings-badge" class="ml-2 text-xs text-base-content/50 font-medium hidden"></span>
+                </button>
+                <div id="sched-settings-body" class="hidden px-6 py-3 bg-base-100/50">
+                    <div class="flex items-center gap-6 text-sm flex-wrap">
+                        <label class="flex items-center gap-2">
+                            <span class="text-base-content/60 whitespace-nowrap">Start date</span>
+                            <select id="sched-start-month" class="select select-xs select-bordered">
+                                <option value="1">Jan</option><option value="2">Feb</option>
+                                <option value="3">Mar</option><option value="4">Apr</option>
+                                <option value="5">May</option><option value="6">Jun</option>
+                                <option value="7">Jul</option><option value="8">Aug</option>
+                                <option value="9">Sep</option><option value="10">Oct</option>
+                                <option value="11">Nov</option><option value="12">Dec</option>
+                            </select>
+                            <input type="number" id="sched-start-year" class="input input-bordered input-xs w-20" min="2000" max="2100" placeholder="2026">
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <span class="text-base-content/60 whitespace-nowrap">Down payment</span>
+                            <label class="input input-bordered input-xs flex items-center gap-1 w-28">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text" inputmode="numeric" id="sched-down-payment" placeholder="0" class="grow min-w-0">
+                            </label>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {# Additional payments — collapsible #}
+            <div class="border-b border-base-300">
+                <button id="extra-payments-toggle" class="w-full px-6 py-2 flex items-center gap-2 hover:bg-base-300/30 transition-colors text-left bg-base-100/50">
+                    <svg id="extra-payments-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-base-content/40 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                    <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Additional Payments</span>
+                    <span id="extra-payments-badge" class="ml-2 text-xs text-success font-medium hidden"></span>
+                </button>
+                <div id="extra-payments-body" class="hidden bg-base-100/50">
+                    <div id="extra-payments-list"></div>
+                    <div class="px-6 py-2 border-t border-base-300/30">
+                        <button id="add-extra-payment-btn" class="btn btn-xs btn-ghost text-base-content/50 hover:text-base-content gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+                            Add payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {# Schedule table #}
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-base-200 z-10">
+                        <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
+                            <th class="pl-6 pr-3 py-2 text-left font-medium w-8"></th>
+                            <th class="px-3 py-2 text-left font-medium">Date</th>
+                            <th class="px-3 py-2 text-right font-medium">Principal</th>
+                            <th class="px-3 py-2 text-left font-medium">Σ Principal</th>
+                            <th class="px-3 py-2 text-right font-medium">Interest</th>
+                            <th class="px-3 py-2 text-left font-medium">Σ Interest</th>
+                            <th class="pl-3 pr-6 py-2 text-right font-medium">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-tbody">
+                        <tr id="schedule-empty">
+                            <td colspan="7" class="pl-6 pr-6 py-6 text-center text-base-content/40 text-xs">
+                                Select a loan to view its amortization schedule.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{# Loan detail modal #}
+<dialog id="loan-detail-modal" class="modal">
+    <div class="modal-box max-w-sm">
+        <h3 id="modal-loan-name" class="font-bold text-lg mb-4"></h3>
+        <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
+            <span class="text-base-content/60">Loan Amount</span>
+            <span id="modal-loan-amount" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Interest Rate</span>
+            <span id="modal-interest" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Term</span>
+            <span id="modal-term" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">P&amp;I / mo</span>
+            <span id="modal-pi" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Monthly Total</span>
+            <span id="modal-monthly-total" class="text-right tabular-nums font-medium"></span>
+
+            <div class="col-span-2 border-t border-base-300 my-1"></div>
+
+            <span class="text-base-content/60">Points</span>
+            <span id="modal-points" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Net Credits</span>
+            <span id="modal-net-credits" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Net Fees</span>
+            <span id="modal-net-fees" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Closing Cost</span>
+            <span id="modal-closing" class="text-right tabular-nums font-medium"></span>
+
+            <div class="col-span-2 border-t border-base-300 my-1"></div>
+
+            <span class="text-base-content/60">Prop Tax / mo</span>
+            <span id="modal-prop-tax" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">HOA / mo</span>
+            <span id="modal-hoa" class="text-right tabular-nums font-medium"></span>
+
+            <span class="text-base-content/60">Insurance / yr</span>
+            <span id="modal-insurance" class="text-right tabular-nums font-medium"></span>
+        </div>
+        <div class="modal-action mt-5">
+            <form method="dialog"><button class="btn btn-sm btn-primary">Close</button></form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var STORAGE_KEY = 'mortgage_loans';
+    var SELECTED_KEY = 'amortization_selected_loan';
+    var EXTRA_PAYMENTS_KEY = 'amortization_extra_payments';
+    var ACTIVE_TAB_KEY = 'amortization_active_tab';
+    var SCHEDULE_SETTINGS_KEY = 'amortization_schedule_settings';
+    var SCHED_SETTINGS_OPEN_KEY = 'amortization_schedule_settings_open';
+    var GRAPH_SETTINGS_OPEN_KEY = 'amortization_graph_settings_open';
+    var selectedLoanId = null;
+    var amortSortState = { col: null, dir: 1 };
+
+    function loadLoans() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        catch(e) { return []; }
+    }
+
+    function fmtCurrency(val) {
+        if (!val && val !== 0) return '—';
+        if (!isFinite(val) || isNaN(val)) return '—';
+        var sign = val < 0 ? '-' : '';
+        return sign + '$' + Math.abs(Math.round(val)).toLocaleString();
+    }
+
+    function fmtPct(val) {
+        if (!val && val !== 0) return '—';
+        return val.toFixed(3) + '%';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Amortization Calculation Module (reusable for Graph)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Calculate full amortization schedule with optional extra payments.
+     * Returns { schedule: [...], totalInterest, totalPrincipal, payoffDate, payoffMonth }
+     *
+     * Each schedule entry: { month, year, calendarMonth, calendarYear, payment, principal, interest, extra, balance }
+     *
+     * @param {number} principal - Initial loan amount
+     * @param {number} annualRatePct - Annual interest rate as percent (e.g. 6.5 for 6.5%)
+     * @param {number} termYears - Loan term in years
+     * @param {Date} startDate - Loan start date (first payment month)
+     * @param {Array} extraPayments - [{type: 'monthly'|'yearly'|'onetime', amount, startMonth}]
+     */
+    function calculateAmortization(principal, annualRatePct, termYears, startDate, extraPayments) {
+        extraPayments = Array.isArray(extraPayments) ? extraPayments : [];
+
+        var schedule = [];
+        var balance = principal;
+        var monthlyRate = annualRatePct / 100 / 12;
+        var totalPayments = termYears * 12;
+
+        // Standard monthly P&I payment
+        var monthlyPayment;
+        if (monthlyRate <= 0) {
+            monthlyPayment = principal / totalPayments;
+        } else {
+            monthlyPayment = principal * monthlyRate * Math.pow(1 + monthlyRate, totalPayments) /
+                            (Math.pow(1 + monthlyRate, totalPayments) - 1);
+        }
+
+        var totalInterest = 0;
+        var totalPrincipal = 0;
+        var payoffMonth = totalPayments;
+
+        for (var month = 1; month <= totalPayments && balance > 0.01; month++) {
+            var paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + month - 1, 1);
+            var calendarYear = paymentDate.getFullYear();
+            var calendarMonth = paymentDate.getMonth() + 1;
+
+            // Interest for this month
+            var interestPayment = balance * monthlyRate;
+
+            // Principal portion of regular payment
+            var principalPayment = Math.min(monthlyPayment - interestPayment, balance);
+
+            // Extra payments — sum all matching entries
+            var extra = 0;
+            for (var ei = 0; ei < extraPayments.length; ei++) {
+                var ep = extraPayments[ei];
+                var amt = ep.amount || 0;
+                if (amt <= 0) continue;
+                var start = ep.startMonth || 1;
+                if (month < start) continue;
+                if (ep.type === 'monthly') {
+                    extra += amt;
+                } else if (ep.type === 'yearly') {
+                    if ((month - start) % 12 === 0) extra += amt;
+                } else if (ep.type === 'onetime') {
+                    if (month === start) extra += amt;
+                }
+            }
+
+            // Cap extra payment to remaining balance after principal
+            var maxExtra = Math.max(0, balance - principalPayment);
+            extra = Math.min(extra, maxExtra);
+
+            var totalPrincipalThisMonth = principalPayment + extra;
+            balance = Math.max(0, balance - totalPrincipalThisMonth);
+
+            totalInterest += interestPayment;
+            totalPrincipal += totalPrincipalThisMonth;
+
+            schedule.push({
+                month: month,
+                year: Math.ceil(month / 12),
+                calendarMonth: calendarMonth,
+                calendarYear: calendarYear,
+                payment: monthlyPayment + extra,
+                principal: totalPrincipalThisMonth,
+                interest: interestPayment,
+                extra: extra,
+                balance: balance,
+                accumPrincipal: totalPrincipal,
+                accumInterest: totalInterest
+            });
+
+            if (balance <= 0.01) {
+                payoffMonth = month;
+                break;
+            }
+        }
+
+        var payoffDate = new Date(startDate.getFullYear(), startDate.getMonth() + payoffMonth - 1, 1);
+
+        return {
+            schedule: schedule,
+            totalInterest: totalInterest,
+            totalPrincipal: totalPrincipal,
+            payoffDate: payoffDate,
+            payoffMonth: payoffMonth,
+            monthlyPayment: monthlyPayment
+        };
+    }
+
+    /**
+     * Aggregate schedule by calendar year.
+     * Returns array of { year, totalPrincipal, totalInterest, endBalance, months: [...] }
+     */
+    function aggregateByYear(schedule) {
+        var yearMap = {};
+
+        schedule.forEach(function(entry) {
+            var year = entry.calendarYear;
+            if (!yearMap[year]) {
+                yearMap[year] = {
+                    year: year,
+                    totalPrincipal: 0,
+                    totalInterest: 0,
+                    endBalance: 0,
+                    accumPrincipal: 0,
+                    accumInterest: 0,
+                    months: []
+                };
+            }
+            yearMap[year].totalPrincipal += entry.principal;
+            yearMap[year].totalInterest += entry.interest;
+            yearMap[year].endBalance = entry.balance;
+            yearMap[year].accumPrincipal = entry.accumPrincipal;
+            yearMap[year].accumInterest = entry.accumInterest;
+            yearMap[year].months.push(entry);
+        });
+
+        return Object.keys(yearMap)
+            .map(function(k) { return yearMap[k]; })
+            .sort(function(a, b) { return a.year - b.year; });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Extra Payments Persistence
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function loadExtraPayments() {
+        try {
+            var data = JSON.parse(localStorage.getItem(EXTRA_PAYMENTS_KEY));
+            return Array.isArray(data) ? data : [];
+        }
+        catch(e) { return []; }
+    }
+
+    function saveExtraPayments(list) {
+        localStorage.setItem(EXTRA_PAYMENTS_KEY, JSON.stringify(list));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Schedule Settings (start date + down payment)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function defaultScheduleSettings() {
+        var d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        return { startMonth: d.getMonth() + 1, startYear: d.getFullYear(), downPayment: 0 };
+    }
+
+    function loadScheduleSettings() {
+        try {
+            var data = JSON.parse(localStorage.getItem(SCHEDULE_SETTINGS_KEY));
+            return (data && data.startYear) ? data : defaultScheduleSettings();
+        }
+        catch(e) { return defaultScheduleSettings(); }
+    }
+
+    function saveScheduleSettings(data) {
+        localStorage.setItem(SCHEDULE_SETTINGS_KEY, JSON.stringify(data));
+    }
+
+    function getScheduleSettingsFromInputs() {
+        return {
+            startMonth:  parseInt(document.getElementById('sched-start-month').value)                          || 1,
+            startYear:   parseInt(document.getElementById('sched-start-year').value)                           || new Date().getFullYear(),
+            downPayment: parseFloat(document.getElementById('sched-down-payment').value.replace(/,/g, ''))     || 0
+        };
+    }
+
+    function initScheduleSettingsPanel() {
+        var s = loadScheduleSettings();
+        document.getElementById('sched-start-month').value  = s.startMonth;
+        document.getElementById('sched-start-year').value   = s.startYear;
+        document.getElementById('sched-down-payment').value = s.downPayment ? Number(Math.round(s.downPayment)).toLocaleString('en-US') : '';
+        updateSchedSettingsBadge();
+    }
+
+    function updateSchedSettingsBadge() {
+        var s     = loadScheduleSettings();
+        var def   = defaultScheduleSettings();
+        var badge = document.getElementById('sched-settings-badge');
+        var parts = [];
+        var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        if (s.startMonth !== def.startMonth || s.startYear !== def.startYear) {
+            parts.push(mNames[s.startMonth - 1] + ' ' + s.startYear);
+        }
+        if (s.downPayment > 0) parts.push(fmtCurrency(s.downPayment) + ' down');
+        if (parts.length > 0) {
+            badge.textContent = parts.join(' · ');
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function setSchedSettingsOpen(open) {
+        var body    = document.getElementById('sched-settings-body');
+        var chevron = document.getElementById('sched-settings-chevron');
+        if (open) {
+            body.classList.remove('hidden');
+            chevron.classList.add('rotate-90');
+        } else {
+            body.classList.add('hidden');
+            chevron.classList.remove('rotate-90');
+        }
+        localStorage.setItem(SCHED_SETTINGS_OPEN_KEY, open ? '1' : '0');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Schedule Table Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    var expandedYears = {};
+
+    function renderSchedule() {
+        var loans = loadLoans();
+        var loan = loans.find(function(l) { return l.id === selectedLoanId; });
+
+        var tbody = document.getElementById('schedule-tbody');
+        var empty = document.getElementById('schedule-empty');
+
+        tbody.querySelectorAll('tr:not(#schedule-empty)').forEach(function(r) { r.remove(); });
+
+        if (!loan) {
+            empty.style.display = '';
+            document.getElementById('schedule-summary').style.display = 'none';
+            return;
+        }
+        empty.style.display = 'none';
+        document.getElementById('schedule-summary').style.display = '';
+
+        var extraPayments  = loadExtraPayments();
+        var schedSettings  = loadScheduleSettings();
+        var downPayment    = schedSettings.downPayment || 0;
+
+        var startDate = new Date(schedSettings.startYear, schedSettings.startMonth - 1, 1);
+
+        var result = calculateAmortization(
+            loan.loan_amount,
+            loan.interest,
+            loan.term_years,
+            startDate,
+            extraPayments
+        );
+
+        // Update summary
+        document.getElementById('schedule-loan-amount').textContent      = fmtCurrency(loan.loan_amount);
+        document.getElementById('schedule-interest-rate').textContent     = loan.interest ? loan.interest.toFixed(3) + '%' : '—';
+        document.getElementById('schedule-total-interest').textContent    = fmtCurrency(result.totalInterest);
+        document.getElementById('schedule-closing-costs').textContent     = fmtCurrency(loan.closing || 0);
+        document.getElementById('schedule-cost-of-loan').textContent      = fmtCurrency(loan.loan_amount + result.totalInterest + (loan.closing || 0));
+        document.getElementById('schedule-remaining-payments').textContent = result.payoffMonth + ' mo';
+
+        var payoffStr = result.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        document.getElementById('schedule-payoff-date').textContent = payoffStr;
+
+        var dpWrap = document.getElementById('schedule-down-payment-wrap');
+        if (downPayment > 0) {
+            document.getElementById('schedule-down-payment').textContent = fmtCurrency(downPayment);
+            dpWrap.classList.remove('hidden');
+        } else {
+            dpWrap.classList.add('hidden');
+        }
+
+        var yearData = aggregateByYear(result.schedule);
+        var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        // Month 0 — down payment row (pinned above the year groups)
+        if (downPayment > 0) {
+            var dpDate = new Date(startDate.getFullYear(), startDate.getMonth() - 1, 1);
+            var dpLabel = monthNames[dpDate.getMonth()] + ' ' + dpDate.getFullYear();
+            var dpTr = document.createElement('tr');
+            dpTr.className = 'border-b border-base-300/50 bg-success/5';
+            dpTr.innerHTML =
+                '<td class="pl-6 pr-3 py-2"></td>' +
+                '<td class="px-3 py-2 text-base-content/60 text-xs font-medium">' + dpLabel + ' <span class="text-success text-xs">(down)</span></td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-success text-xs">' + fmtCurrency(downPayment) + '</td>' +
+                '<td class="px-3 py-2 text-left tabular-nums text-base-content/50 text-xs">' + fmtCurrency(downPayment) + '</td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/40 text-xs">—</td>' +
+                '<td class="px-3 py-2 text-left tabular-nums text-base-content/40 text-xs">—</td>' +
+                '<td class="pl-3 pr-6 py-2 text-right tabular-nums text-base-content/80 text-xs">' + fmtCurrency(loan.loan_amount) + '</td>';
+            tbody.appendChild(dpTr);
+        }
+
+        yearData.forEach(function(yearInfo) {
+            var isExpanded = expandedYears[yearInfo.year];
+
+            // Year row
+            var yearTr = document.createElement('tr');
+            yearTr.className = 'border-b border-base-300/50 hover:bg-base-300/30 cursor-pointer year-row';
+            yearTr.setAttribute('data-year', yearInfo.year);
+            yearTr.innerHTML =
+                '<td class="pl-6 pr-3 py-2 text-base-content/50">' +
+                    '<span class="inline-block w-4 text-center transition-transform ' + (isExpanded ? 'rotate-90' : '') + '">' +
+                        '<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+                    '</span>' +
+                '</td>' +
+                '<td class="px-3 py-2 font-medium">' + yearInfo.year + '</td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(yearInfo.totalPrincipal) + '</td>' +
+                '<td class="px-3 py-2 text-left tabular-nums text-base-content/50">' + fmtCurrency(yearInfo.accumPrincipal + downPayment) + '</td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(yearInfo.totalInterest) + '</td>' +
+                '<td class="px-3 py-2 text-left tabular-nums text-base-content/50">' + fmtCurrency(yearInfo.accumInterest) + '</td>' +
+                '<td class="pl-3 pr-6 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(yearInfo.endBalance) + '</td>';
+            tbody.appendChild(yearTr);
+
+            yearTr.addEventListener('click', function() {
+                toggleYear(yearInfo.year);
+            });
+
+            // Month rows (hidden by default unless expanded)
+            yearInfo.months.forEach(function(monthEntry) {
+                var monthTr = document.createElement('tr');
+                monthTr.className = 'border-b border-base-300/30 bg-base-100/30 month-row';
+                monthTr.setAttribute('data-parent-year', yearInfo.year);
+                monthTr.style.display = isExpanded ? '' : 'none';
+
+                var monthLabel = monthNames[monthEntry.calendarMonth - 1] + ' ' + monthEntry.calendarYear;
+                var extraIndicator = monthEntry.extra > 0 ?
+                    ' <span class="text-success text-xs">(+' + fmtCurrency(monthEntry.extra).replace('$', '') + ')</span>' : '';
+
+                monthTr.innerHTML =
+                    '<td class="pl-6 pr-3 py-1.5"></td>' +
+                    '<td class="px-3 py-1.5 text-base-content/60 text-xs pl-8">' + monthLabel + '</td>' +
+                    '<td class="px-3 py-1.5 text-right tabular-nums text-base-content/60 text-xs">' + fmtCurrency(monthEntry.principal) + extraIndicator + '</td>' +
+                    '<td class="px-3 py-1.5 text-left tabular-nums text-base-content/40 text-xs">' + fmtCurrency(monthEntry.accumPrincipal + downPayment) + '</td>' +
+                    '<td class="px-3 py-1.5 text-right tabular-nums text-base-content/60 text-xs">' + fmtCurrency(monthEntry.interest) + '</td>' +
+                    '<td class="px-3 py-1.5 text-left tabular-nums text-base-content/40 text-xs">' + fmtCurrency(monthEntry.accumInterest) + '</td>' +
+                    '<td class="pl-3 pr-6 py-1.5 text-right tabular-nums text-base-content/60 text-xs">' + fmtCurrency(monthEntry.balance) + '</td>';
+                tbody.appendChild(monthTr);
+            });
+        });
+    }
+
+    function toggleYear(year) {
+        expandedYears[year] = !expandedYears[year];
+
+        var yearRow = document.querySelector('tr.year-row[data-year="' + year + '"]');
+        var monthRows = document.querySelectorAll('tr.month-row[data-parent-year="' + year + '"]');
+        var chevron = yearRow.querySelector('span');
+
+        if (expandedYears[year]) {
+            chevron.classList.add('rotate-90');
+            monthRows.forEach(function(r) { r.style.display = ''; });
+        } else {
+            chevron.classList.remove('rotate-90');
+            monthRows.forEach(function(r) { r.style.display = 'none'; });
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Loan Selection & Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function selectLoan(id) {
+        selectedLoanId = id;
+        localStorage.setItem(SELECTED_KEY, id);
+
+        // Highlight selected row, clear others
+        document.querySelectorAll('#amort-loans-tbody tr[data-loan-id]').forEach(function(tr) {
+            var isSelected = Number(tr.getAttribute('data-loan-id')) === id;
+            tr.classList.toggle('bg-primary/15', isSelected);
+            tr.classList.toggle('border-l-2', isSelected);
+            tr.classList.toggle('border-l-primary', isSelected);
+            tr.classList.toggle('hover:bg-base-300/30', !isSelected);
+        });
+
+        // Update right-panel headers
+        var loans = loadLoans();
+        var loan = loans.find(function(l) { return l.id === id; });
+        var name = loan ? loan.name : '';
+        document.getElementById('graph-loan-name').textContent    = name;
+        document.getElementById('schedule-loan-name').textContent = name;
+
+        // Render active panel for selected loan
+        renderSchedule();
+        renderGraph();
+    }
+
+    function updateAmortSortHeaders() {
+        document.querySelectorAll('th[data-sort-key]').forEach(function(th) {
+            var key = th.getAttribute('data-sort-key');
+            var existing = th.querySelector('.sort-indicator');
+            if (existing) existing.remove();
+            if (amortSortState.col === key) {
+                var span = document.createElement('span');
+                span.className = 'sort-indicator ml-1 opacity-70';
+                span.textContent = amortSortState.dir === 1 ? '▲' : '▼';
+                th.appendChild(span);
+            }
+        });
+    }
+
+    document.querySelectorAll('th[data-sort-key]').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var key = this.getAttribute('data-sort-key');
+            if (amortSortState.col === key) {
+                amortSortState.dir *= -1;
+            } else {
+                amortSortState.col = key;
+                amortSortState.dir = 1;
+            }
+            renderLoans();
+        });
+    });
+
+    function renderLoans() {
+        var loans = loadLoans();
+        var tbody = document.getElementById('amort-loans-tbody');
+        var empty = document.getElementById('amort-loans-empty');
+
+        tbody.querySelectorAll('tr:not(#amort-loans-empty)').forEach(function(r) { r.remove(); });
+
+        if (loans.length === 0) {
+            empty.style.display = '';
+            updateAmortSortHeaders();
+            return;
+        }
+        empty.style.display = 'none';
+
+        if (amortSortState.col) {
+            loans = loans.slice().sort(function(a, b) {
+                var av = a[amortSortState.col], bv = b[amortSortState.col];
+                if (typeof av === 'string') return av.localeCompare(bv) * amortSortState.dir;
+                return (av - bv) * amortSortState.dir;
+            });
+        }
+
+        loans.forEach(function(loan) {
+            var tr = document.createElement('tr');
+            tr.className = 'border-b border-base-300/50 hover:bg-base-300/30 transition-colors cursor-pointer';
+            tr.setAttribute('data-loan-id', loan.id);
+            tr.innerHTML =
+                '<td class="pl-4 pr-3 py-2 font-medium whitespace-nowrap max-w-[8rem] truncate" title="' + escHtml(loan.name) + '">' + escHtml(loan.name) + '</td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.loan_amount) + '</td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(loan.pi) + '</td>' +
+                '<td class="pl-3 pr-4 py-2 text-right">' +
+                    '<button class="btn btn-xs btn-outline" data-view-id="' + loan.id + '">View</button>' +
+                '</td>';
+            tbody.appendChild(tr);
+
+            tr.addEventListener('click', function(e) {
+                // Don't steal the View button click
+                if (e.target.closest('[data-view-id]')) return;
+                selectLoan(loan.id);
+            });
+        });
+
+        tbody.querySelectorAll('[data-view-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openLoanModal(Number(this.getAttribute('data-view-id')));
+            });
+        });
+
+        // Restore persisted selection, fall back to first loan
+        if (loans.length > 0 && selectedLoanId === null) {
+            var savedId = Number(localStorage.getItem(SELECTED_KEY));
+            var match = savedId && loans.find(function(l) { return l.id === savedId; });
+            selectLoan(match ? savedId : loans[0].id);
+        }
+
+        updateAmortSortHeaders();
+    }
+
+    function openLoanModal(id) {
+        var loans = loadLoans();
+        var loan = loans.find(function(l) { return l.id === id; });
+        if (!loan) return;
+
+        document.getElementById('modal-loan-name').textContent    = loan.name;
+        document.getElementById('modal-loan-amount').textContent  = fmtCurrency(loan.loan_amount);
+        document.getElementById('modal-interest').textContent     = fmtPct(loan.interest);
+        document.getElementById('modal-term').textContent         = (loan.term_years || '—') + ' yr';
+        document.getElementById('modal-pi').textContent           = fmtCurrency(loan.pi);
+        document.getElementById('modal-monthly-total').textContent= fmtCurrency(loan.monthly_total);
+        document.getElementById('modal-points').textContent       = loan.points ? loan.points.toFixed(3) + ' pts' : '—';
+        document.getElementById('modal-net-credits').textContent  = fmtCurrency(loan.net_credits);
+        document.getElementById('modal-net-fees').textContent     = fmtCurrency(loan.net_fees);
+        document.getElementById('modal-closing').textContent      = fmtCurrency(loan.closing);
+        document.getElementById('modal-prop-tax').textContent     = fmtCurrency(loan.prop_tax);
+        document.getElementById('modal-hoa').textContent          = fmtCurrency(loan.hoa);
+        document.getElementById('modal-insurance').textContent    = fmtCurrency(loan.insurance);
+
+        document.getElementById('loan-detail-modal').showModal();
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function switchTab(tab) {
+        var tabs = ['graph', 'schedule'];
+        tabs.forEach(function(t) {
+            var btn = document.getElementById('tab-' + t);
+            var panel = document.getElementById('panel-' + t);
+            if (t === tab) {
+                btn.classList.remove('border-transparent', 'hover:border-base-content/40');
+                btn.classList.add('border-base-content');
+                panel.classList.remove('hidden');
+            } else {
+                btn.classList.remove('border-base-content');
+                btn.classList.add('border-transparent', 'hover:border-base-content/40');
+                panel.classList.add('hidden');
+            }
+        });
+
+        localStorage.setItem(ACTIVE_TAB_KEY, tab);
+        history.replaceState(null, '', '/amortization/' + tab);
+
+        if (tab === 'schedule') {
+            renderExtraPaymentsList();
+            renderSchedule();
+        } else if (tab === 'graph') {
+            renderGraphExtraList();
+            updateGraphExtraBadge();
+            requestAnimationFrame(renderGraph);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Dollar input formatting for extra payment fields
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function applyCommaFormat(input) {
+        var raw = input.value.replace(/[^0-9]/g, '');
+        var digitsRight = input.value.slice(input.selectionStart).replace(/[^0-9]/g, '').length;
+        var formatted = raw ? Number(raw).toLocaleString('en-US') : '';
+        input.value = formatted;
+        if (digitsRight === 0) {
+            input.setSelectionRange(formatted.length, formatted.length);
+        } else {
+            var count = 0;
+            var pos = formatted.length;
+            for (var i = formatted.length - 1; i >= 0; i--) {
+                if (/[0-9]/.test(formatted[i])) {
+                    count++;
+                    if (count === digitsRight) { pos = i; break; }
+                }
+            }
+            input.setSelectionRange(pos, pos);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Collapsible extra payments panel
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    var EXTRA_OPEN_KEY = 'amortization_extra_payments_open';
+
+    function updateExtraPaymentsBadge() {
+        var list = loadExtraPayments();
+        var badge = document.getElementById('extra-payments-badge');
+        var active = list.filter(function(ep) { return (ep.amount || 0) > 0; });
+        if (active.length > 0) {
+            badge.textContent = active.length + ' payment' + (active.length !== 1 ? 's' : '');
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    // ── Extra payment row label text ─────────────────────────────────────────
+    function epMonthLabel(type) {
+        return type === 'onetime' ? 'at month' : 'starting mo.';
+    }
+
+    // ── Render the list of extra payment rows ────────────────────────────────
+    function renderExtraPaymentsList() {
+        var list = loadExtraPayments();
+        var container = document.getElementById('extra-payments-list');
+        container.innerHTML = '';
+
+        list.forEach(function(ep) {
+            var div = document.createElement('div');
+            div.className = 'flex items-center gap-2 px-6 py-2 border-b border-base-300/30';
+            div.setAttribute('data-ep-id', ep.id);
+
+            var amtFormatted = ep.amount ? Number(Math.round(ep.amount)).toLocaleString('en-US') : '';
+
+            div.innerHTML =
+                '<select class="select select-xs select-bordered ep-type w-28">' +
+                    '<option value="monthly"'  + (ep.type === 'monthly'  ? ' selected' : '') + '>Monthly</option>' +
+                    '<option value="yearly"'   + (ep.type === 'yearly'   ? ' selected' : '') + '>Yearly</option>' +
+                    '<option value="onetime"'  + (ep.type === 'onetime'  ? ' selected' : '') + '>One-time</option>' +
+                '</select>' +
+                '<label class="input input-bordered input-xs flex items-center gap-1 w-28">' +
+                    '<span class="text-base-content/60">$</span>' +
+                    '<input type="text" inputmode="numeric" class="grow min-w-0 ep-amount" placeholder="0" value="' + escHtml(amtFormatted) + '">' +
+                '</label>' +
+                '<span class="ep-month-label text-xs text-base-content/50 whitespace-nowrap">' + epMonthLabel(ep.type) + '</span>' +
+                '<input type="number" min="1" class="input input-bordered input-xs w-16 ep-start-month" value="' + (ep.startMonth || 1) + '">' +
+                '<button class="btn btn-ghost btn-xs text-base-content/30 hover:text-error ep-remove ml-auto" title="Remove">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>' +
+                '</button>';
+
+            container.appendChild(div);
+        });
+
+        if (list.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'px-6 py-3 text-xs text-base-content/40';
+            empty.textContent = 'No additional payments. Click "Add payment" to get started.';
+            container.appendChild(empty);
+        }
+    }
+
+    // ── Read a single row back into the list and save ────────────────────────
+    function syncRowToStorage(rowEl) {
+        var id = Number(rowEl.getAttribute('data-ep-id'));
+        var list = loadExtraPayments();
+        var entry = list.find(function(ep) { return ep.id === id; });
+        if (!entry) return;
+        entry.type       = rowEl.querySelector('.ep-type').value;
+        entry.amount     = parseFloat(rowEl.querySelector('.ep-amount').value.replace(/,/g, '')) || 0;
+        entry.startMonth = parseInt(rowEl.querySelector('.ep-start-month').value) || 1;
+        saveExtraPayments(list);
+        updateExtraPaymentsBadge();
+        renderSchedule();
+    }
+
+    // ── Add a new empty extra payment entry ──────────────────────────────────
+    function addExtraPayment() {
+        var list = loadExtraPayments();
+        list.push({ id: Date.now(), type: 'monthly', amount: 0, startMonth: 1 });
+        saveExtraPayments(list);
+        renderExtraPaymentsList();
+        renderGraphExtraList();
+        updateExtraPaymentsBadge();
+        updateGraphExtraBadge();
+        // Auto-open the panel if it's closed
+        if (document.getElementById('extra-payments-body').classList.contains('hidden')) {
+            setExtraPaymentsOpen(true);
+        }
+    }
+
+    // ── Remove an extra payment entry ────────────────────────────────────────
+    function removeExtraPayment(id) {
+        var list = loadExtraPayments().filter(function(ep) { return ep.id !== id; });
+        saveExtraPayments(list);
+        renderExtraPaymentsList();
+        renderGraphExtraList();
+        updateExtraPaymentsBadge();
+        updateGraphExtraBadge();
+        renderSchedule();
+    }
+
+    function setExtraPaymentsOpen(open) {
+        var body    = document.getElementById('extra-payments-body');
+        var chevron = document.getElementById('extra-payments-chevron');
+        if (open) {
+            body.classList.remove('hidden');
+            chevron.classList.add('rotate-90');
+        } else {
+            body.classList.add('hidden');
+            chevron.classList.remove('rotate-90');
+        }
+        localStorage.setItem(EXTRA_OPEN_KEY, open ? '1' : '0');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Graph Rendering
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    var GRAPH_COLORS = { interest: '#f87171', principal: '#4ade80', balance: '#60a5fa' };
+    var GRAPH_EXTRA_OPEN_KEY = 'amortization_graph_extra_open';
+    var graphData = null;
+
+    // ─── Graph Settings (mirrors schedule settings, same storage key) ────────
+
+    function getGraphSettingsFromInputs() {
+        var existing = loadScheduleSettings();
+        return {
+            startMonth:  parseInt(document.getElementById('graph-start-month').value) || 1,
+            startYear:   parseInt(document.getElementById('graph-start-year').value)  || new Date().getFullYear(),
+            downPayment: existing.downPayment
+        };
+    }
+
+    function initGraphSettingsPanel() {
+        var s = loadScheduleSettings();
+        document.getElementById('graph-start-month').value = s.startMonth;
+        document.getElementById('graph-start-year').value  = s.startYear;
+        updateGraphSettingsBadge();
+    }
+
+    function updateGraphSettingsBadge() {
+        var s     = loadScheduleSettings();
+        var def   = defaultScheduleSettings();
+        var badge = document.getElementById('graph-settings-badge');
+        var parts = [];
+        var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        if (s.startMonth !== def.startMonth || s.startYear !== def.startYear) {
+            parts.push(mNames[s.startMonth - 1] + ' ' + s.startYear);
+        }
+        if (parts.length > 0) {
+            badge.textContent = parts.join(' · ');
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function setGraphSettingsOpen(open) {
+        var body    = document.getElementById('graph-settings-body');
+        var chevron = document.getElementById('graph-settings-chevron');
+        if (open) {
+            body.classList.remove('hidden');
+            chevron.classList.add('rotate-90');
+        } else {
+            body.classList.add('hidden');
+            chevron.classList.remove('rotate-90');
+        }
+        localStorage.setItem(GRAPH_SETTINGS_OPEN_KEY, open ? '1' : '0');
+    }
+
+    function niceYTicks(maxVal, count) {
+        if (maxVal <= 0) return [0];
+        var rough = maxVal / count;
+        var mag   = Math.pow(10, Math.floor(Math.log10(rough)));
+        var n     = rough / mag;
+        var nice  = n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10;
+        var step  = nice * mag;
+        // Always include one tick strictly above maxVal so no data touches the top edge
+        var topTick = (Math.floor(maxVal / step) + 1) * step;
+        var ticks = [];
+        for (var v = 0; v <= topTick + step * 0.01; v += step) ticks.push(v);
+        return ticks;
+    }
+
+    function fmtYAxis(val) {
+        if (val >= 1e6) return '$' + (val / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (val >= 1000) return '$' + Math.round(val / 1000) + 'k';
+        return '$' + Math.round(val);
+    }
+
+    function svgEl(tag, attrs) {
+        var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        if (attrs) Object.keys(attrs).forEach(function(k) { e.setAttribute(k, attrs[k]); });
+        return e;
+    }
+
+    function buildSvgPath(pts) {
+        if (!pts.length) return '';
+        var d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
+        for (var i = 1; i < pts.length; i++) {
+            d += 'L' + pts[i][0].toFixed(1) + ',' + pts[i][1].toFixed(1);
+        }
+        return d;
+    }
+
+    function updateGraphLegend(entry) {
+        if (!entry) {
+            document.getElementById('legend-date').textContent      = '—';
+            document.getElementById('legend-interest').textContent  = '—';
+            document.getElementById('legend-principal').textContent = '—';
+            document.getElementById('legend-balance').textContent   = '—';
+            return;
+        }
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        document.getElementById('legend-date').textContent      = months[entry.calendarMonth - 1] + ' ' + entry.calendarYear;
+        document.getElementById('legend-interest').textContent  = fmtCurrency(entry.accumInterest);
+        document.getElementById('legend-principal').textContent = fmtCurrency(entry.accumPrincipal);
+        document.getElementById('legend-balance').textContent   = fmtCurrency(entry.balance);
+    }
+
+    function renderGraph() {
+        var loans = loadLoans();
+        var loan  = loans.find(function(l) { return l.id === selectedLoanId; });
+        var svg   = document.getElementById('amort-chart');
+
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        graphData = null;
+
+        if (!loan) {
+            document.getElementById('graph-summary').classList.add('hidden');
+            updateGraphLegend(null);
+            var empty = svgEl('text', {
+                x: '50%', y: '50%', 'text-anchor': 'middle',
+                'dominant-baseline': 'middle', fill: 'rgba(255,255,255,0.2)', 'font-size': '13'
+            });
+            empty.textContent = 'Select a loan to view its amortization graph.';
+            svg.appendChild(empty);
+            return;
+        }
+
+        var extraPayments = loadExtraPayments();
+        var schedSettings = loadScheduleSettings();
+        var startDate     = new Date(schedSettings.startYear, schedSettings.startMonth - 1, 1);
+        var result        = calculateAmortization(loan.loan_amount, loan.interest, loan.term_years, startDate, extraPayments);
+        var sched         = result.schedule;
+
+        // Update summary bar
+        document.getElementById('graph-summary').classList.remove('hidden');
+        document.getElementById('graph-loan-amount').textContent        = fmtCurrency(loan.loan_amount);
+        document.getElementById('graph-interest-rate').textContent      = loan.interest ? loan.interest.toFixed(3) + '%' : '—';
+        document.getElementById('graph-total-interest').textContent     = fmtCurrency(result.totalInterest);
+        document.getElementById('graph-closing-costs').textContent      = fmtCurrency(loan.closing || 0);
+        document.getElementById('graph-cost-of-loan').textContent       = fmtCurrency(loan.loan_amount + result.totalInterest + (loan.closing || 0));
+        document.getElementById('graph-payoff-date').textContent        = result.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        document.getElementById('graph-remaining-payments').textContent = result.payoffMonth + ' mo';
+
+        // Dimensions — skip draw if panel is hidden
+        var container = document.getElementById('graph-chart-container');
+        var W = container.clientWidth;
+        var H = container.clientHeight;
+        if (W < 50 || H < 50) { updateGraphLegend(sched[sched.length - 1]); return; }
+
+        var mg = { t: 18, r: 18, b: 34, l: 68 };
+        var cW = W - mg.l - mg.r;
+        var cH = H - mg.t - mg.b;
+        var n  = sched.length;
+
+        // Y domain: true peak across all three curves; niceYTicks always rounds up to a tick
+        // strictly above dataMax, so no curve ever touches or clips the top edge
+        var dataMax = Math.max(loan.loan_amount, result.totalInterest, result.totalPrincipal);
+        var yTicks = niceYTicks(dataMax, 5);
+        var yMax   = yTicks[yTicks.length - 1];
+
+        function xS(i) { return mg.l + (i / Math.max(n - 1, 1)) * cW; }
+        function yS(v) { return mg.t + cH * (1 - v / yMax); }
+
+        graphData = { sched: sched, xS: xS, yS: yS, mg: mg, cW: cW, cH: cH, W: W, H: H };
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+        // Clip path
+        var defs = svgEl('defs');
+        var clip = svgEl('clipPath', { id: 'amort-clip' });
+        clip.appendChild(svgEl('rect', { x: mg.l, y: mg.t, width: cW, height: cH }));
+        defs.appendChild(clip);
+        svg.appendChild(defs);
+
+        // Y grid lines + labels
+        yTicks.forEach(function(tick) {
+            var y = yS(tick);
+            svg.appendChild(svgEl('line', {
+                x1: mg.l, y1: y, x2: mg.l + cW, y2: y,
+                stroke: 'rgba(255,255,255,0.06)', 'stroke-width': '1'
+            }));
+            var lbl = svgEl('text', {
+                x: mg.l - 7, y: y, 'text-anchor': 'end',
+                'dominant-baseline': 'middle', fill: 'rgba(255,255,255,0.35)', 'font-size': '11'
+            });
+            lbl.textContent = fmtYAxis(tick);
+            svg.appendChild(lbl);
+        });
+
+        // X axis year labels
+        var yearSpan = result.payoffDate.getFullYear() - startDate.getFullYear();
+        var xStep    = yearSpan <= 5 ? 1 : yearSpan <= 12 ? 2 : 5;
+        for (var labYr = startDate.getFullYear(); labYr <= result.payoffDate.getFullYear(); labYr += xStep) {
+            var mi = -1;
+            for (var k = 0; k < sched.length; k++) {
+                if (sched[k].calendarYear === labYr) { mi = k; break; }
+            }
+            if (mi < 0) continue;
+            var lx = xS(mi);
+            svg.appendChild(svgEl('line', {
+                x1: lx, y1: mg.t + cH, x2: lx, y2: mg.t + cH + 4,
+                stroke: 'rgba(255,255,255,0.2)', 'stroke-width': '1'
+            }));
+            var ylbl = svgEl('text', {
+                x: lx, y: mg.t + cH + 16, 'text-anchor': 'middle',
+                fill: 'rgba(255,255,255,0.35)', 'font-size': '11'
+            });
+            ylbl.textContent = String(labYr);
+            svg.appendChild(ylbl);
+        }
+
+        // Chart border
+        svg.appendChild(svgEl('rect', {
+            x: mg.l, y: mg.t, width: cW, height: cH,
+            fill: 'none', stroke: 'rgba(255,255,255,0.1)', 'stroke-width': '1'
+        }));
+
+        // Build line paths
+        var iPts = [], pPts = [], bPts = [];
+        sched.forEach(function(e, i) {
+            var x = xS(i);
+            iPts.push([x, yS(e.accumInterest)]);
+            pPts.push([x, yS(e.accumPrincipal)]);
+            bPts.push([x, yS(e.balance)]);
+        });
+
+        var lineGroup = svgEl('g', { 'clip-path': 'url(#amort-clip)' });
+        lineGroup.appendChild(svgEl('path', { d: buildSvgPath(bPts), fill: 'none', stroke: GRAPH_COLORS.balance,   'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+        lineGroup.appendChild(svgEl('path', { d: buildSvgPath(iPts), fill: 'none', stroke: GRAPH_COLORS.interest,  'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+        lineGroup.appendChild(svgEl('path', { d: buildSvgPath(pPts), fill: 'none', stroke: GRAPH_COLORS.principal, 'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+        svg.appendChild(lineGroup);
+
+        // Hover group (hidden until mousemove)
+        var hg = svgEl('g', { id: 'chart-hover' });
+        hg.style.display = 'none';
+        hg.appendChild(svgEl('line', {
+            id: 'hover-vline', x1: 0, y1: mg.t, x2: 0, y2: mg.t + cH,
+            stroke: 'rgba(255,255,255,0.45)', 'stroke-width': '1', 'stroke-dasharray': '4 3'
+        }));
+        hg.appendChild(svgEl('circle', { id: 'hc-interest',  r: '4.5', fill: GRAPH_COLORS.interest,  stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        hg.appendChild(svgEl('circle', { id: 'hc-principal', r: '4.5', fill: GRAPH_COLORS.principal, stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        hg.appendChild(svgEl('circle', { id: 'hc-balance',   r: '4.5', fill: GRAPH_COLORS.balance,   stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        svg.appendChild(hg);
+
+        // Transparent overlay for mouse events
+        var overlay = svgEl('rect', { x: mg.l, y: mg.t, width: cW, height: cH, fill: 'transparent', cursor: 'crosshair' });
+        overlay.addEventListener('mousemove', onChartHover);
+        overlay.addEventListener('mouseleave', onChartLeave);
+        overlay.addEventListener('click', onChartClick);
+        svg.appendChild(overlay);
+
+        // Default legend = final (payoff) month
+        updateGraphLegend(sched[sched.length - 1]);
+    }
+
+    var chartLocked = false;
+
+    function onChartHover(e) {
+        if (chartLocked) return;
+        if (!graphData) return;
+        var svg  = document.getElementById('amort-chart');
+        var rect = svg.getBoundingClientRect();
+        var svgX = (e.clientX - rect.left) * (graphData.W / rect.width);
+        var relX = svgX - graphData.mg.l;
+        var n    = graphData.sched.length;
+        var idx  = Math.round(relX / graphData.cW * (n - 1));
+        idx = Math.max(0, Math.min(n - 1, idx));
+
+        var entry = graphData.sched[idx];
+        var x     = graphData.xS(idx);
+
+        var hg = document.getElementById('chart-hover');
+        hg.style.display = '';
+
+        document.getElementById('hover-vline').setAttribute('x1', x.toFixed(1));
+        document.getElementById('hover-vline').setAttribute('x2', x.toFixed(1));
+
+        document.getElementById('hc-interest').setAttribute('cx',  x.toFixed(1));
+        document.getElementById('hc-interest').setAttribute('cy',  graphData.yS(entry.accumInterest).toFixed(1));
+        document.getElementById('hc-principal').setAttribute('cx', x.toFixed(1));
+        document.getElementById('hc-principal').setAttribute('cy', graphData.yS(entry.accumPrincipal).toFixed(1));
+        document.getElementById('hc-balance').setAttribute('cx',   x.toFixed(1));
+        document.getElementById('hc-balance').setAttribute('cy',   graphData.yS(entry.balance).toFixed(1));
+
+        updateGraphLegend(entry);
+    }
+
+    function onChartLeave() {
+        if (chartLocked) return;
+        var hg = document.getElementById('chart-hover');
+        if (hg) hg.style.display = 'none';
+        if (graphData && graphData.sched.length) {
+            updateGraphLegend(graphData.sched[graphData.sched.length - 1]);
+        }
+    }
+
+    function onChartClick(e) {
+        if (!graphData) return;
+        var badge = document.getElementById('legend-pin-badge');
+
+        if (chartLocked) {
+            chartLocked = false;
+            badge.classList.add('hidden');
+            return;
+        }
+
+        // Lock at snapped crosshair position
+        chartLocked = true;
+        var svg  = document.getElementById('amort-chart');
+        var rect = svg.getBoundingClientRect();
+        var svgX = (e.clientX - rect.left) * (graphData.W / rect.width);
+        var relX = svgX - graphData.mg.l;
+        var n    = graphData.sched.length;
+        var idx  = Math.round(relX / graphData.cW * (n - 1));
+        idx = Math.max(0, Math.min(n - 1, idx));
+        var x     = graphData.xS(idx);
+        var entry = graphData.sched[idx];
+
+        // Sync crosshair to this position (may have drifted between hover events)
+        var hg = document.getElementById('chart-hover');
+        hg.style.display = '';
+        document.getElementById('hover-vline').setAttribute('x1', x.toFixed(1));
+        document.getElementById('hover-vline').setAttribute('x2', x.toFixed(1));
+        document.getElementById('hc-interest').setAttribute('cx',  x.toFixed(1));
+        document.getElementById('hc-interest').setAttribute('cy',  graphData.yS(entry.accumInterest).toFixed(1));
+        document.getElementById('hc-principal').setAttribute('cx', x.toFixed(1));
+        document.getElementById('hc-principal').setAttribute('cy', graphData.yS(entry.accumPrincipal).toFixed(1));
+        document.getElementById('hc-balance').setAttribute('cx',   x.toFixed(1));
+        document.getElementById('hc-balance').setAttribute('cy',   graphData.yS(entry.balance).toFixed(1));
+        updateGraphLegend(entry);
+
+        badge.classList.remove('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Graph Tab — Additional Payments (shares EXTRA_PAYMENTS_KEY storage)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderGraphExtraList() {
+        var list      = loadExtraPayments();
+        var container = document.getElementById('graph-extra-list');
+        container.innerHTML = '';
+
+        list.forEach(function(ep) {
+            var div = document.createElement('div');
+            div.className = 'flex items-center gap-2 px-6 py-2 border-b border-base-300/30';
+            div.setAttribute('data-gep-id', ep.id);
+            var amtFormatted = ep.amount ? Number(Math.round(ep.amount)).toLocaleString('en-US') : '';
+            div.innerHTML =
+                '<select class="select select-xs select-bordered gep-type w-28">' +
+                    '<option value="monthly"'  + (ep.type === 'monthly'  ? ' selected' : '') + '>Monthly</option>'  +
+                    '<option value="yearly"'   + (ep.type === 'yearly'   ? ' selected' : '') + '>Yearly</option>'   +
+                    '<option value="onetime"'  + (ep.type === 'onetime'  ? ' selected' : '') + '>One-time</option>' +
+                '</select>' +
+                '<label class="input input-bordered input-xs flex items-center gap-1 w-28">' +
+                    '<span class="text-base-content/60">$</span>' +
+                    '<input type="text" inputmode="numeric" class="grow min-w-0 gep-amount" placeholder="0" value="' + escHtml(amtFormatted) + '">' +
+                '</label>' +
+                '<span class="gep-month-label text-xs text-base-content/50 whitespace-nowrap">' + epMonthLabel(ep.type) + '</span>' +
+                '<input type="number" min="1" class="input input-bordered input-xs w-16 gep-start-month" value="' + (ep.startMonth || 1) + '">' +
+                '<button class="btn btn-ghost btn-xs text-base-content/30 hover:text-error gep-remove ml-auto" title="Remove">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>' +
+                '</button>';
+            container.appendChild(div);
+        });
+
+        if (list.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'px-6 py-3 text-xs text-base-content/40';
+            empty.textContent = 'No additional payments. Click \u201cAdd payment\u201d to get started.';
+            container.appendChild(empty);
+        }
+    }
+
+    function updateGraphExtraBadge() {
+        var list   = loadExtraPayments();
+        var badge  = document.getElementById('graph-extra-badge');
+        var active = list.filter(function(ep) { return (ep.amount || 0) > 0; });
+        if (active.length > 0) {
+            badge.textContent = active.length + ' payment' + (active.length !== 1 ? 's' : '');
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function setGraphExtraOpen(open) {
+        var body    = document.getElementById('graph-extra-body');
+        var chevron = document.getElementById('graph-extra-chevron');
+        if (open) {
+            body.classList.remove('hidden');
+            chevron.classList.add('rotate-90');
+        } else {
+            body.classList.add('hidden');
+            chevron.classList.remove('rotate-90');
+        }
+        localStorage.setItem(GRAPH_EXTRA_OPEN_KEY, open ? '1' : '0');
+    }
+
+    function syncGraphRow(rowEl) {
+        var id    = Number(rowEl.getAttribute('data-gep-id'));
+        var list  = loadExtraPayments();
+        var entry = list.find(function(ep) { return ep.id === id; });
+        if (!entry) return;
+        entry.type       = rowEl.querySelector('.gep-type').value;
+        entry.amount     = parseFloat(rowEl.querySelector('.gep-amount').value.replace(/,/g, '')) || 0;
+        entry.startMonth = parseInt(rowEl.querySelector('.gep-start-month').value) || 1;
+        saveExtraPayments(list);
+        updateExtraPaymentsBadge();
+        updateGraphExtraBadge();
+        renderGraph();
+    }
+
+    function addGraphExtraPayment() {
+        var list = loadExtraPayments();
+        list.push({ id: Date.now(), type: 'monthly', amount: 0, startMonth: 1 });
+        saveExtraPayments(list);
+        renderExtraPaymentsList();
+        renderGraphExtraList();
+        updateExtraPaymentsBadge();
+        updateGraphExtraBadge();
+        if (document.getElementById('graph-extra-body').classList.contains('hidden')) {
+            setGraphExtraOpen(true);
+        }
+    }
+
+    function removeGraphExtraPayment(id) {
+        var list = loadExtraPayments().filter(function(ep) { return ep.id !== id; });
+        saveExtraPayments(list);
+        renderExtraPaymentsList();
+        renderGraphExtraList();
+        updateExtraPaymentsBadge();
+        updateGraphExtraBadge();
+        renderGraph();
+    }
+
+    document.getElementById('sched-settings-toggle').addEventListener('click', function() {
+        var isOpen = !document.getElementById('sched-settings-body').classList.contains('hidden');
+        setSchedSettingsOpen(!isOpen);
+    });
+
+    document.getElementById('sched-start-month').addEventListener('change', function() {
+        saveScheduleSettings(getScheduleSettingsFromInputs());
+        updateSchedSettingsBadge();
+        initGraphSettingsPanel();
+        renderSchedule();
+        renderGraph();
+    });
+
+    document.getElementById('sched-start-year').addEventListener('input', function() {
+        saveScheduleSettings(getScheduleSettingsFromInputs());
+        updateSchedSettingsBadge();
+        initGraphSettingsPanel();
+        renderSchedule();
+        renderGraph();
+    });
+
+    document.getElementById('sched-down-payment').addEventListener('input', function() {
+        applyCommaFormat(this);
+        saveScheduleSettings(getScheduleSettingsFromInputs());
+        updateSchedSettingsBadge();
+        initGraphSettingsPanel();
+        renderSchedule();
+        renderGraph();
+    });
+
+    document.getElementById('extra-payments-toggle').addEventListener('click', function() {
+        var isOpen = !document.getElementById('extra-payments-body').classList.contains('hidden');
+        setExtraPaymentsOpen(!isOpen);
+    });
+
+    document.getElementById('graph-settings-toggle').addEventListener('click', function() {
+        var isOpen = !document.getElementById('graph-settings-body').classList.contains('hidden');
+        setGraphSettingsOpen(!isOpen);
+    });
+
+    document.getElementById('graph-start-month').addEventListener('change', function() {
+        saveScheduleSettings(getGraphSettingsFromInputs());
+        updateSchedSettingsBadge();
+        updateGraphSettingsBadge();
+        initScheduleSettingsPanel();
+        renderSchedule();
+        renderGraph();
+    });
+
+    document.getElementById('graph-start-year').addEventListener('input', function() {
+        saveScheduleSettings(getGraphSettingsFromInputs());
+        updateSchedSettingsBadge();
+        updateGraphSettingsBadge();
+        initScheduleSettingsPanel();
+        renderSchedule();
+        renderGraph();
+    });
+
+    document.getElementById('graph-extra-toggle').addEventListener('click', function() {
+        setGraphExtraOpen(document.getElementById('graph-extra-body').classList.contains('hidden'));
+    });
+
+    document.getElementById('graph-extra-list').addEventListener('input', function(e) {
+        var row = e.target.closest('[data-gep-id]');
+        if (!row) return;
+        if (e.target.classList.contains('gep-amount')) applyCommaFormat(e.target);
+        if (e.target.classList.contains('gep-type')) {
+            row.querySelector('.gep-month-label').textContent = epMonthLabel(e.target.value);
+        }
+        syncGraphRow(row);
+    });
+
+    document.getElementById('graph-extra-list').addEventListener('click', function(e) {
+        var btn = e.target.closest('.gep-remove');
+        if (!btn) return;
+        var row = btn.closest('[data-gep-id]');
+        if (row) removeGraphExtraPayment(Number(row.getAttribute('data-gep-id')));
+    });
+
+    document.getElementById('graph-add-extra-btn').addEventListener('click', addGraphExtraPayment);
+
+    // ResizeObserver redraws chart when container dimensions change
+    if (window.ResizeObserver) {
+        new ResizeObserver(function() { renderGraph(); })
+            .observe(document.getElementById('graph-chart-container'));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Initialization
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ── Event delegation for dynamically-rendered extra-payment rows ─────────
+    document.getElementById('extra-payments-list').addEventListener('input', function(e) {
+        var row = e.target.closest('[data-ep-id]');
+        if (!row) return;
+        if (e.target.classList.contains('ep-amount')) {
+            applyCommaFormat(e.target);
+        }
+        // Update the month label when frequency changes
+        if (e.target.classList.contains('ep-type')) {
+            row.querySelector('.ep-month-label').textContent = epMonthLabel(e.target.value);
+        }
+        syncRowToStorage(row);
+    });
+
+    document.getElementById('extra-payments-list').addEventListener('click', function(e) {
+        var btn = e.target.closest('.ep-remove');
+        if (!btn) return;
+        var row = btn.closest('[data-ep-id]');
+        if (row) removeExtraPayment(Number(row.getAttribute('data-ep-id')));
+    });
+
+    document.getElementById('add-extra-payment-btn').addEventListener('click', addExtraPayment);
+
+    // Restore settings and extra payments from localStorage
+    initScheduleSettingsPanel();
+    setSchedSettingsOpen(localStorage.getItem(SCHED_SETTINGS_OPEN_KEY) === '1');
+    initGraphSettingsPanel();
+    setGraphSettingsOpen(localStorage.getItem(GRAPH_SETTINGS_OPEN_KEY) === '1');
+    renderExtraPaymentsList();
+    updateExtraPaymentsBadge();
+    setExtraPaymentsOpen(localStorage.getItem(EXTRA_OPEN_KEY) === '1');
+    renderGraphExtraList();
+    updateGraphExtraBadge();
+    setGraphExtraOpen(localStorage.getItem(GRAPH_EXTRA_OPEN_KEY) === '1');
+
+    // Restore active tab — deeplink route takes priority, then localStorage
+    var deeplinkedTab = '{{ initial_tab }}';
+    var storedTab = localStorage.getItem(ACTIVE_TAB_KEY);
+    var startTab = (deeplinkedTab === 'graph' || deeplinkedTab === 'schedule')
+        ? deeplinkedTab
+        : (storedTab === 'schedule' ? 'schedule' : 'graph');
+    switchTab(startTab);
+
+    // Initial render
+    renderLoans();
+</script>
+{% endblock %}
