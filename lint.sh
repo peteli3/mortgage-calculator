@@ -20,8 +20,8 @@ ensure_dev_env() {
         source "$VENV/bin/activate"
     fi
 
-    echo "==> Syncing dev dependencies"
-    python -m pip install -q -r "$ROOT/requirements-dev.txt"
+    echo "==> Syncing dependencies"
+    python -m pip install -q -r "$ROOT/requirements.txt" -r "$ROOT/requirements-dev.txt"
 }
 
 ensure_dev_env
