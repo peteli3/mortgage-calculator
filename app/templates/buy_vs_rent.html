@@ -17,6 +17,7 @@
         {# Header: loan name + action buttons #}
         <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 flex-wrap gap-y-1">
             <h2 class="text-xl font-bold tracking-wide text-base-content/80" id="bvr-loan-name"></h2>
+            <span id="bvr-arm-badge" class="hidden badge badge-sm badge-outline text-base-content/60"></span>
             <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
                     onclick="document.getElementById('bvr-select-loan-modal').showModal()">
                 Change
@@ -25,6 +26,16 @@
                     onclick="document.getElementById('bvr-assumptions-modal').showModal()">
                 Assumptions
             </button>
+            {# ARM scenario control. Hidden for Fixed loans. #}
+            <div id="bvr-scenario-control" class="hidden ml-auto flex items-center gap-1 text-xs">
+                <span class="text-base-content/40 uppercase tracking-wide font-semibold mr-1">Scenario</span>
+                <div class="join" role="tablist">
+                    <button type="button" class="join-item btn btn-xs" data-scenario="worst">Worst</button>
+                    <button type="button" class="join-item btn btn-xs" data-scenario="flat">Flat</button>
+                    <button type="button" class="join-item btn btn-xs" data-scenario="best">Best</button>
+                    <button type="button" class="join-item btn btn-xs btn-active" data-scenario="compare">Compare</button>
+                </div>
+            </div>
         </div>
 
         {# Placeholder: no loan selected #}
@@ -44,41 +55,118 @@
             {# ── Year-by-Year Table + Chart ───────────────────────────────── #}
             <div class="flex-1 overflow-y-auto">
 
-                {# ── Net Worth Chart ──────────────────────────────────────── #}
-                <div id="bvr-chart-wrap" class="relative shrink-0 border-b border-base-300 aspect-video" style="min-height:220px">
+                {# ── Net Worth Chart + legend (floating on sm+, in-flow on mobile) ── #}
+                <div id="bvr-chart-legend-host" class="relative shrink-0 border-b border-base-300">
+                <div id="bvr-chart-wrap" class="relative aspect-video" style="min-height:220px">
                     <svg id="bvr-chart" style="position:absolute;inset:0;width:100%;height:100%;display:block"></svg>
-                </div>
-
-                {# ── Chart Legend (scrolls with table) ─────────────────────── #}
-                <div id="bvr-chart-legend" class="hidden px-5 py-2 border-b border-base-300">
-                    {# 4-col grid: dot | label | at-year | at-payoff #}
-                    <div class="grid gap-x-3 gap-y-1.5 items-center text-sm" style="grid-template-columns: 13px auto auto auto">
-                        {# row 1: stacked year+advantage / pin badge + column headers #}
-                        <div class="col-span-2 flex flex-col gap-0.5 pb-0.5">
-                            <span class="text-xs text-base-content/50">Year <span id="bvr-legend-year" class="font-medium text-base-content/70">—</span><span id="bvr-legend-adv-inline" class="hidden"> · <span id="bvr-legend-adv-label"></span> <span id="bvr-legend-adv-val" class="font-semibold tabular-nums">—</span></span></span>
-                            <span id="bvr-legend-pin-badge" class="hidden text-xs text-base-content/40">(pinned — click to release)</span>
+                </div>{# /bvr-chart-wrap #}
+                    {# Legend: stationary below chart on &lt;640px; draggable overlay on sm+ #}
+                    <div id="bvr-legend-panel" class="hidden max-sm:relative max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-t max-sm:border-base-300 max-sm:bg-base-200 max-sm:shadow-none sm:absolute sm:z-10 sm:min-w-[13rem] sm:rounded-lg sm:border sm:border-base-content/15 sm:bg-base-200/80 sm:shadow-xl sm:select-none sm:bottom-4 sm:right-4 transition-opacity duration-200">
+                        <div id="bvr-legend-header" class="flex items-center justify-between px-3 py-1.5 max-sm:cursor-default sm:cursor-grab border-b border-base-content/15 max-sm:rounded-none sm:rounded-t-lg gap-3">
+                            <span class="flex items-center gap-1.5 text-xs text-base-content/50 whitespace-nowrap">
+                                <svg id="bvr-legend-drag-icon" xmlns="http://www.w3.org/2000/svg" class="hidden sm:block w-3.5 h-3.5 text-base-content/35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                    <path d="M5 9l-3 3 3 3"/>
+                                    <path d="M9 5l3-3 3 3"/>
+                                    <path d="M15 19l-3 3-3-3"/>
+                                    <path d="M19 9l3 3-3 3"/>
+                                    <path d="M2 12h20"/>
+                                    <path d="M12 2v20"/>
+                                </svg>
+                                <span id="bvr-legend-year-label" title="Drag to reposition">Year <span id="bvr-legend-year" class="font-medium text-base-content/70">—</span></span>
+                            </span>
+                            <button id="bvr-legend-toggle" class="btn btn-ghost btn-xs px-1 min-h-0 h-5 leading-none text-base-content/40 hover:text-base-content" title="Minimize">
+                                <svg id="bvr-legend-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
                         </div>
-                        <span class="text-xs text-base-content/35 text-right pb-0.5 self-end">At year</span>
-                        <span class="text-xs text-base-content/35 text-right pb-0.5 self-end">At payoff</span>
-                        {# row 2: Buyer NW #}
-                        <svg width="13" height="13"><circle cx="6.5" cy="6.5" r="5.5" fill="#60a5fa"/></svg>
-                        <span class="text-base-content/70">Buyer NW</span>
-                        <span id="bvr-legend-buy" class="font-semibold tabular-nums text-base-content/90 text-right">—</span>
-                        <span id="bvr-legend-buy-payoff" class="font-semibold tabular-nums text-base-content/50 text-right">—</span>
-                        {# row 3: Renter NW #}
-                        <svg width="13" height="13"><circle cx="6.5" cy="6.5" r="5.5" fill="#4ade80"/></svg>
-                        <span class="text-base-content/70">Renter NW</span>
-                        <span id="bvr-legend-rent" class="font-semibold tabular-nums text-base-content/90 text-right">—</span>
-                        <span id="bvr-legend-rent-payoff" class="font-semibold tabular-nums text-base-content/50 text-right">—</span>
-                        {# row 4: Home Value — display:contents makes children participate in grid #}
-                        <div id="bvr-legend-home-value" style="display:none">
-                            <span class="w-[13px]"></span>
-                            <span class="text-base-content/70">Home Value</span>
-                            <span id="bvr-legend-home-value-display" class="font-semibold tabular-nums text-base-content/90 text-right">—</span>
-                            <span id="bvr-legend-home-value-payoff" class="font-semibold tabular-nums text-base-content/50 text-right">—</span>
+                        <div id="bvr-legend-body" class="px-3 py-2 text-xs">
+                            <div id="bvr-legend-pin-badge" class="hidden text-base-content/40 mb-1.5 text-[11px]">(pinned — click to release)</div>
+                            {# 2-col grid: dot+label | value #}
+                            <div class="grid gap-x-3 gap-y-1.5" style="grid-template-columns: auto 1fr">
+                                {# Home Value — first; toggled to display:contents by JS when down payment is set #}
+                                <div id="bvr-legend-home-value" style="display:none">
+                                    <span class="text-base-content/50 whitespace-nowrap pl-3.5">Home Value</span>
+                                    <span id="bvr-legend-home-value-display" class="tabular-nums text-right text-base-content/60">—</span>
+                                </div>
+                                {# Worst buyer row — visible only in compare mode #}
+                                <div id="bvr-legend-buy-worst-row" class="flex items-center gap-1.5" style="display:none">
+                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#1d4ed8"/></svg>
+                                    <span class="text-base-content/70 whitespace-nowrap">Buyer NW (worst)</span>
+                                </div>
+                                <span id="bvr-legend-buy-worst" class="font-semibold tabular-nums text-right" style="display:none">—</span>
+                                {# Flat / single-mode buyer row #}
+                                <div class="flex items-center gap-1.5">
+                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#60a5fa"/></svg>
+                                    <span id="bvr-legend-buy-label" class="text-base-content/70 whitespace-nowrap">Buyer NW</span>
+                                </div>
+                                <span id="bvr-legend-buy" class="font-semibold tabular-nums text-right">—</span>
+                                {# Best buyer row — visible only in compare mode #}
+                                <div id="bvr-legend-buy-best-row" class="flex items-center gap-1.5" style="display:none">
+                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#7dd3fc"/></svg>
+                                    <span class="text-base-content/70 whitespace-nowrap">Buyer NW (best)</span>
+                                </div>
+                                <span id="bvr-legend-buy-best" class="font-semibold tabular-nums text-right" style="display:none">—</span>
+                                <div class="flex items-center gap-1.5">
+                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#4ade80"/></svg>
+                                    <span class="text-base-content/70 whitespace-nowrap">Renter NW</span>
+                                </div>
+                                <span id="bvr-legend-rent" class="font-semibold tabular-nums text-right">—</span>
+                            </div>
+                            {# Advantage section — updates dynamically with hovered year #}
+                            <div id="bvr-legend-adv-section" class="mt-2 pt-1.5 border-t border-base-content/10">
+                                {# Single mode: one row #}
+                                <div id="bvr-legend-adv-single" class="flex justify-between items-center gap-2">
+                                    <span id="bvr-legend-adv-label" class="text-base-content/50 whitespace-nowrap text-[11px]">—</span>
+                                    <span id="bvr-legend-adv-val" class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                </div>
+                                {# Compare mode: worst + best breakdown #}
+                                <div id="bvr-legend-adv-range" style="display:none">
+                                    <div class="text-base-content/35 uppercase tracking-wide text-[10px] mb-1">Advantage</div>
+                                    <div class="flex justify-between gap-2">
+                                        <span class="text-base-content/50 text-[11px] whitespace-nowrap">Worst case</span>
+                                        <span id="bvr-legend-adv-worst" class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <span class="text-base-content/50 text-[11px] whitespace-nowrap">Best case</span>
+                                        <span id="bvr-legend-adv-best" class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {# At-payoff section #}
+                            <div class="mt-2 pt-1.5 border-t border-base-content/10">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-base-content/35 uppercase tracking-wide text-[10px]">At payoff</div>
+                                    <button id="bvr-payoff-toggle" class="btn btn-ghost btn-xs px-1 min-h-0 h-5 leading-none text-base-content/35 hover:text-base-content" title="Expand">
+                                        <svg id="bvr-payoff-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform" style="transform:rotate(-90deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                                    </button>
+                                </div>
+                                <div id="bvr-payoff-body" style="display:none">
+                                <div class="grid gap-x-3 gap-y-1" style="grid-template-columns: auto 1fr">
+                                    {# Home Value first — toggled to display:contents when down payment is set #}
+                                    <div id="bvr-legend-home-value-payoff-wrap" style="display:none">
+                                        <span class="text-base-content/50 whitespace-nowrap">Home Value</span>
+                                        <span id="bvr-legend-home-value-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                    </div>
+                                    {# Best buyer row — compare mode only #}
+                                    <div id="bvr-legend-buy-best-payoff-wrap" style="display:none">
+                                        <span class="text-base-content/50 whitespace-nowrap">Buyer NW (best)</span>
+                                        <span id="bvr-legend-buy-best-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                    </div>
+                                    {# Flat / single-mode buyer row #}
+                                    <span id="bvr-legend-buy-flat-payoff-label" class="text-base-content/50 whitespace-nowrap">Buyer NW</span>
+                                    <span id="bvr-legend-buy-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                    {# Worst buyer row — compare mode only #}
+                                    <div id="bvr-legend-buy-worst-payoff-wrap" style="display:none">
+                                        <span class="text-base-content/50 whitespace-nowrap">Buyer NW (worst)</span>
+                                        <span id="bvr-legend-buy-worst-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                    </div>
+                                    <span class="text-base-content/50 whitespace-nowrap">Renter NW</span>
+                                    <span id="bvr-legend-rent-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </div>{# /bvr-legend-panel #}
+                </div>{# /bvr-chart-legend-host #}
 
                 <div class="overflow-x-auto">
                 <table class="w-full text-xs">
@@ -219,16 +307,142 @@
     // fmtDollarField defined in mortgage-common.js
     // fmtPct defined in mortgage-loan-detail.js
     var BVR_ASSUMP_KEY     = 'bvr_assumptions';
+    var BVR_SCENARIO_KEY   = 'bvr_scenario';
+    var BVR_LEGEND_POS_KEY_PREFIX = 'bvr_legend_pos_';
+    var BVR_LEGEND_SIG_KEY_PREFIX = 'bvr_legend_sig_';
     var selectedLoanId     = null;
     var bvrSortState       = { col: null, dir: 1 };
-    var lastBvrResults     = null;
+    var lastBvrResults     = null;       // table scenario results
+    var lastBvrChartResults = null;      // chart baseline results (driven by top Scenario selector)
+    var lastBvrScenarios   = null;       // ARM only: { worst, intro_forever, best }
     var bvrChartData       = null;
     var bvrChartLocked     = false;
+    var bvrChartHovered    = false;
     var bvrLockedIdx       = null;
+    var bvrScenario        = localStorage.getItem(BVR_SCENARIO_KEY) || 'compare';
+    var BVR_TABLE_SCEN_KEY = 'bvr_table_scenario';
+    // Table scenario is independent of chart view; defaults to chart-derived
+    // mapping so a fresh page state Just Works, but the user can click the
+    // table strip to pick any one of the three ARM scenarios.
+    var bvrTableScenario   = localStorage.getItem(BVR_TABLE_SCEN_KEY) || tableScenarioFor(bvrScenario);
+    // Migrate the retired 'indexed_flat' table scenario to the surviving 'intro_forever' (Flat).
+    if (bvrTableScenario === 'indexed_flat') bvrTableScenario = 'intro_forever';
+    // Blue spectrum so no buyer line collides with the green renter line.
+    var SCENARIO_COLOR     = {
+        worst:         '#1d4ed8',  // blue-700 (dark)
+        intro_forever: '#60a5fa',  // blue-400 (medium — matches single-line buyer)
+        best:          '#7dd3fc'   // sky-300 (light)
+    };
+    var SCENARIO_LABEL = {
+        worst:         'Worst case',
+        intro_forever: 'Flat',
+        best:          'Best case'
+    };
+
+    // The chart scenario selector chooses a "view"; the table always shows one
+    // single underlying scenario. Map: chart-view → table data scenario.
+    // 'flat' is now identical to 'intro_forever' (rate never adjusts).
+    function tableScenarioFor(view) {
+        if (view === 'flat')    return 'intro_forever';
+        if (view === 'compare') return 'intro_forever';
+        return view;   // 'worst' / 'best' / 'intro_forever'
+    }
+
+    // Map the chart view to the BVR scenario used as the renter baseline in
+    // the chart. This is independent of the table scenario so that changing
+    // the schedule strip never moves the renter line on the graph.
+    function chartScenarioFor(view) {
+        if (view === 'flat')    return 'intro_forever';
+        if (view === 'compare') return 'intro_forever';
+        if (view === 'best')    return 'best';
+        return 'worst';  // 'worst' or unrecognized
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Utility
     // ═══════════════════════════════════════════════════════════════════════════
+
+    function bvrLegendPosKeyFor(loanId) {
+        return BVR_LEGEND_POS_KEY_PREFIX + String(loanId || '');
+    }
+
+    function bvrLegendSigKeyFor(loanId) {
+        return BVR_LEGEND_SIG_KEY_PREFIX + String(loanId || '');
+    }
+
+    function bvrGraphSignature(loan, a) {
+        // Minimal complexity: stringify the exact inputs we already use to compute/render the graph.
+        // If this changes, we drop the stored legend position so it doesn't "stick" to a different chart.
+        return JSON.stringify({
+            loan: loan || null,
+            assumptions: a || null,
+            scenario: bvrScenario,
+            tableScenario: bvrTableScenario
+        });
+    }
+
+    function bvrLegendIsFloating() {
+        return window.matchMedia('(min-width: 640px)').matches;
+    }
+
+    function bvrClearLegendPanelPosition() {
+        var panel = document.getElementById('bvr-legend-panel');
+        if (!panel) return;
+        panel.style.left   = '';
+        panel.style.top    = '';
+        panel.style.bottom = '';
+        panel.style.right  = '';
+    }
+
+    function bvrSyncLegendPanelLayout() {
+        var label = document.getElementById('bvr-legend-year-label');
+        if (label) label.title = bvrLegendIsFloating() ? 'Drag to reposition' : '';
+        if (!bvrLegendIsFloating()) {
+            bvrClearLegendPanelPosition();
+            var panel = document.getElementById('bvr-legend-panel');
+            if (panel) panel.classList.remove('bvr-legend-dimmed');
+            return;
+        }
+        bvrRestoreLegendPanelPosition();
+    }
+
+    function bvrRestoreLegendPanelPosition() {
+        if (!selectedLoanId || !bvrLegendIsFloating()) return;
+        var wrap  = document.getElementById('bvr-chart-legend-host');
+        var panel = document.getElementById('bvr-legend-panel');
+        if (!wrap || !panel) return;
+
+        // Always start from canonical default for the current loan view.
+        // If this loan has no saved drag position, it should not inherit the prior loan's position.
+        panel.style.left   = '';
+        panel.style.top    = '';
+        panel.style.bottom = '1rem';
+        panel.style.right  = '1rem';
+
+        var raw = null;
+        try { raw = localStorage.getItem(bvrLegendPosKeyFor(selectedLoanId)); } catch(e) {}
+        if (!raw) return;
+
+        var obj = null;
+        try { obj = JSON.parse(raw); } catch(e) { obj = null; }
+        if (!obj || typeof obj.lPct !== 'number' || typeof obj.tPct !== 'number') return;
+
+        var wrapRect = wrap.getBoundingClientRect();
+        var panelRect = panel.getBoundingClientRect();
+        if (!wrapRect.width || !wrapRect.height) return;
+
+        var left = obj.lPct * wrapRect.width;
+        var top  = obj.tPct * wrapRect.height;
+
+        // Clamp to keep panel fully inside the chart.
+        left = Math.max(0, Math.min(wrapRect.width - panelRect.width, left));
+        top  = Math.max(0, Math.min(wrapRect.height - panelRect.height, top));
+
+        panel.style.bottom = 'auto';
+        panel.style.right  = 'auto';
+        panel.style.left   = left + 'px';
+        panel.style.top    = top + 'px';
+    }
 
     function fmtCurrency(val) {
         if (!val && val !== 0) return '—';
@@ -256,6 +470,7 @@
         var loans = loadLoans();
         var loan  = loans.find(function(l) { return l.id === id; });
         document.getElementById('bvr-loan-name').textContent = loan ? loan.name : '';
+        updateArmHeaderUI(loan);
 
         if (loan) {
             document.getElementById('bvr-placeholder').style.display = 'none';
@@ -264,6 +479,27 @@
         } else {
             document.getElementById('bvr-placeholder').style.display = '';
             document.getElementById('bvr-analysis').classList.add('hidden');
+        }
+    }
+
+    // Show ARM badge + scenario control only when the selected loan is an ARM.
+    // For Fixed loans, both elements stay hidden, so the page looks identical
+    // to today.
+    function updateArmHeaderUI(loan) {
+        var badge  = document.getElementById('bvr-arm-badge');
+        var scenCtl = document.getElementById('bvr-scenario-control');
+        var isArm  = loan && loan.loan_type === 'arm';
+        if (isArm) {
+            badge.textContent = armProductLabel(loan);
+            badge.classList.remove('hidden');
+            scenCtl.classList.remove('hidden');
+            // Highlight active button
+            scenCtl.querySelectorAll('button[data-scenario]').forEach(function(btn) {
+                btn.classList.toggle('btn-active', btn.getAttribute('data-scenario') === bvrScenario);
+            });
+        } else {
+            badge.classList.add('hidden');
+            scenCtl.classList.add('hidden');
         }
     }
 
@@ -445,10 +681,15 @@
     // Calculation Engine
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function runBvR(loan, a) {
+    function runBvR(loan, a, scenario) {
+        scenario = scenario || 'intro_forever';
         var termMonths   = Math.round((loan.term_years || 30) * 12);
-        var monthlyRate  = (loan.interest || 0) / 100 / 12;
-        var pi           = loan.pi || 0;
+        // Per-month annual rate (%) schedule. For Fixed loans this is flat.
+        // For ARM loans the rate steps at each adjustment month and P&I
+        // is recast below to match standard servicing behavior.
+        var rates        = buildRateSchedule(loan, scenario);
+        var lastRate     = rates[0];
+        var pi           = computePayment(loan.loan_amount, lastRate, termMonths);
         var propTaxMo    = loan.prop_tax || 0;           // stored as $/mo
         var hoaMo        = loan.hoa || 0;                // stored as $/mo
         var insuranceMo  = (loan.insurance || 0) / 12;  // stored as $/yr → convert to $/mo
@@ -483,6 +724,13 @@
 
         for (var m = 1; m <= termMonths; m++) {
             // ── Amortization ──────────────────────────────────────────────
+            var rateThis = rates[m - 1];
+            if (rateThis !== lastRate) {
+                // ARM adjustment: recast P&I over the remaining months
+                pi = computePayment(balance, rateThis, termMonths - (m - 1));
+                lastRate = rateThis;
+            }
+            var monthlyRate = rateThis / 100 / 12;
             var intPortion  = balance * monthlyRate;
             var prinPortion = Math.max(0, pi - intPortion);
             balance = Math.max(0, balance - prinPortion);
@@ -581,7 +829,7 @@
     // Chart Rendering
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function renderBvrChart(results) {
+    function renderBvrChart(results, scenarios) {
         var svg = document.getElementById('bvr-chart');
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
@@ -593,14 +841,26 @@
         var H = container.clientHeight;
         if (W < 50 || H < 50) return;
 
+        // Decide chart mode: single | compare.
+        // Flat is now a single-mode view (rate never adjusts), so it draws
+        // one buyer NW curve in blue exactly like worst/best.
+        var multiMode = scenarios && bvrScenario === 'compare';
+
         var mg = { t: 14, r: 14, b: 28, l: 64 };
         var cW = W - mg.l - mg.r;
         var cH = H - mg.t - mg.b;
         var n  = yearly.length;
 
-        // Y range across both curves
+        // Y range — include all visible scenarios + canonical renter line.
         var allNW = [];
-        yearly.forEach(function(d) { allNW.push(d.buyNW); allNW.push(d.rentNW); });
+        yearly.forEach(function(d) { allNW.push(d.rentNW); });
+        if (multiMode) {
+            ARM_SCENARIOS.forEach(function(sc) {
+                scenarios[sc].yearly.forEach(function(d) { allNW.push(d.buyNW); });
+            });
+        } else {
+            yearly.forEach(function(d) { allNW.push(d.buyNW); });
+        }
         var rawMin = Math.min.apply(null, allNW);
         var rawMax = Math.max.apply(null, allNW);
         var yTicks = niceTicks(rawMin, rawMax, 5);
@@ -653,8 +913,9 @@
             svg.appendChild(xl);
         }
 
-        // Break-even vertical dashed line
-        if (results.breakEvenYear !== null) {
+        // Break-even vertical dashed line (single scenario only — multi-mode
+        // would have a range, which we render in the callout instead).
+        if (!multiMode && results.breakEvenYear !== null) {
             var beIdx = -1;
             for (var j = 0; j < yearly.length; j++) {
                 if (yearly[j].year >= results.breakEvenYear) { beIdx = j; break; }
@@ -676,15 +937,11 @@
             }
         }
 
-        // Buyer net worth curve (blue)
-        var buyPts = yearly.map(function(d, i) { return [xS(i), yS(d.buyNW)]; });
-        svg.appendChild(svgEl('path', {
-            d: buildSvgPath(buyPts), fill: 'none',
-            stroke: '#60a5fa', 'stroke-width': '2',
-            'clip-path': 'url(#bvr-clip)'
-        }));
-
-        // Renter net worth curve (green)
+        // Renter net worth curve (green) — single line always.
+        // Strictly the renter line depends on which scenario's buyer cost we
+        // diff against, but plotting four renter curves alongside four buyer
+        // curves is unreadable; we use the table scenario's renter as the
+        // canonical baseline. Slight modeling compromise documented for users.
         var rentPts = yearly.map(function(d, i) { return [xS(i), yS(d.rentNW)]; });
         svg.appendChild(svgEl('path', {
             d: buildSvgPath(rentPts), fill: 'none',
@@ -692,14 +949,40 @@
             'clip-path': 'url(#bvr-clip)'
         }));
 
-        // Hover group (hidden until mousemove)
+        // Buyer net worth — single blue line, or 3 overlaid lines in Compare.
+        if (!multiMode) {
+            var buyPts = yearly.map(function(d, i) { return [xS(i), yS(d.buyNW)]; });
+            svg.appendChild(svgEl('path', {
+                d: buildSvgPath(buyPts), fill: 'none',
+                stroke: '#60a5fa', 'stroke-width': '2',
+                'clip-path': 'url(#bvr-clip)'
+            }));
+        } else {
+            // 'compare' — overlay the 3 buyer NW lines (worst / flat / best).
+            ARM_SCENARIOS.forEach(function(sc) {
+                var pts = scenarios[sc].yearly.map(function(d, i) { return [xS(i), yS(d.buyNW)]; });
+                svg.appendChild(svgEl('path', {
+                    d: buildSvgPath(pts), fill: 'none',
+                    stroke: SCENARIO_COLOR[sc], 'stroke-width': '1.75',
+                    'clip-path': 'url(#bvr-clip)'
+                }));
+            });
+        }
+
+        // Hover group (hidden until mousemove).
         var hg = svgEl('g', { id: 'bvr-hover' });
         hg.style.display = 'none';
         hg.appendChild(svgEl('line', {
             id: 'bvr-hover-vline', x1: 0, y1: mg.t, x2: 0, y2: mg.t + cH,
             stroke: 'rgba(255,255,255,0.45)', 'stroke-width': '1', 'stroke-dasharray': '4 3'
         }));
-        hg.appendChild(svgEl('circle', { id: 'bvr-hc-buy',  r: '4.5', fill: '#60a5fa', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        if (multiMode) {
+            hg.appendChild(svgEl('circle', { id: 'bvr-hc-buy-worst', r: '4.5', fill: '#1d4ed8', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+            hg.appendChild(svgEl('circle', { id: 'bvr-hc-buy-flat',  r: '4.5', fill: '#60a5fa', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+            hg.appendChild(svgEl('circle', { id: 'bvr-hc-buy-best',  r: '4.5', fill: '#7dd3fc', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        } else {
+            hg.appendChild(svgEl('circle', { id: 'bvr-hc-buy', r: '4.5', fill: '#60a5fa', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+        }
         hg.appendChild(svgEl('circle', { id: 'bvr-hc-rent', r: '4.5', fill: '#4ade80', stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
         svg.appendChild(hg);
 
@@ -711,8 +994,23 @@
         svg.appendChild(overlay);
 
         // Store chart state for hover handlers
-        bvrChartData    = { W: W, H: H, mg: mg, cW: cW, cH: cH, xS: xS, yS: yS, yearly: yearly };
+        var lineSets = [
+            yearly.map(function(d, i) { return [xS(i), yS(d.rentNW)]; })
+        ];
+        if (!multiMode) {
+            lineSets.push(yearly.map(function(d, i) { return [xS(i), yS(d.buyNW)]; }));
+        } else {
+            ARM_SCENARIOS.forEach(function(sc) {
+                lineSets.push(scenarios[sc].yearly.map(function(d, i) { return [xS(i), yS(d.buyNW)]; }));
+            });
+        }
+        bvrChartData    = {
+            W: W, H: H, mg: mg, cW: cW, cH: cH, xS: xS, yS: yS,
+            yearly: yearly, multiMode: multiMode, scenarios: scenarios,
+            lineSets: lineSets
+        };
         bvrChartLocked  = false;
+        updateLegendMode(multiMode);
 
         // Restore pinned position if one was locked before this render
         if (bvrLockedIdx !== null && bvrLockedIdx < yearly.length) {
@@ -723,45 +1021,84 @@
             bvrLockedIdx = null;
             document.getElementById('bvr-legend-pin-badge').classList.add('hidden');
             // Default legend = last year
-            updateBvrLegend(yearly[yearly.length - 1]);
+            updateBvrLegend(yearly[yearly.length - 1], yearly.length - 1);
         }
-        document.getElementById('bvr-chart-legend').classList.remove('hidden');
+        document.getElementById('bvr-legend-panel').classList.remove('hidden');
+        bvrSyncLegendPanelLayout();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Chart Interaction
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function updateBvrLegend(entry) {
-        var yearEl     = document.getElementById('bvr-legend-year');
-        var advLabelEl = document.getElementById('bvr-legend-adv-label');
-        var advValEl   = document.getElementById('bvr-legend-adv-val');
+    function updateLegendMode(isMulti) {
+        var disp = isMulti ? '' : 'none';
+        document.getElementById('bvr-legend-buy-worst-row').style.display     = disp;
+        document.getElementById('bvr-legend-buy-worst').style.display         = disp;
+        document.getElementById('bvr-legend-buy-best-row').style.display      = disp;
+        document.getElementById('bvr-legend-buy-best').style.display          = disp;
+        document.getElementById('bvr-legend-buy-label').textContent =
+            isMulti ? 'Buyer NW (flat)' : 'Buyer NW';
+        document.getElementById('bvr-legend-adv-single').style.display = isMulti ? 'none' : '';
+        document.getElementById('bvr-legend-adv-range').style.display  = isMulti ? '' : 'none';
+        var payoffDisp = isMulti ? 'contents' : 'none';
+        document.getElementById('bvr-legend-buy-worst-payoff-wrap').style.display = payoffDisp;
+        document.getElementById('bvr-legend-buy-best-payoff-wrap').style.display  = payoffDisp;
+        document.getElementById('bvr-legend-buy-flat-payoff-label').textContent =
+            isMulti ? 'Buyer NW (flat)' : 'Buyer NW';
+    }
+
+    // Returns a label+value object for a buyer-vs-renter delta.
+    function bvrAdvText(delta) {
+        if (delta > 0)  return { label: 'Buying wins by',  val: fmtCurrency(delta),  cls: 'font-semibold tabular-nums text-right text-[11px] text-success' };
+        if (delta < 0)  return { label: 'Renting wins by', val: fmtCurrency(-delta), cls: 'font-semibold tabular-nums text-right text-[11px] text-warning' };
+        return           { label: 'Break even',        val: '',                  cls: 'font-semibold tabular-nums text-right text-[11px]' };
+    }
+
+    function updateBvrLegend(entry, idx) {
+        var yearEl = document.getElementById('bvr-legend-year');
         if (!entry) {
             if (yearEl) yearEl.textContent = '—';
             document.getElementById('bvr-legend-buy').textContent  = '—';
+            document.getElementById('bvr-legend-buy-worst').textContent = '—';
+            document.getElementById('bvr-legend-buy-best').textContent  = '—';
             document.getElementById('bvr-legend-rent').textContent = '—';
             document.getElementById('bvr-legend-home-value-display').textContent = '—';
+            document.getElementById('bvr-legend-adv-label').textContent = '—';
+            document.getElementById('bvr-legend-adv-val').textContent   = '—';
+            document.getElementById('bvr-legend-adv-worst').textContent = '—';
+            document.getElementById('bvr-legend-adv-best').textContent  = '—';
             return;
         }
         if (yearEl) yearEl.textContent = entry.year;
-        var delta = entry.buyNW - entry.rentNW;
-        document.getElementById('bvr-legend-buy').textContent  = fmtCurrency(entry.buyNW);
         document.getElementById('bvr-legend-rent').textContent = fmtCurrency(entry.rentNW);
         document.getElementById('bvr-legend-home-value-display').textContent = fmtCurrency(entry.homeValue);
-        if (advLabelEl && advValEl) {
-            if (delta > 0) {
-                advLabelEl.textContent = 'Buying adv';
-                advValEl.textContent   = fmtCurrency(delta);
-                advValEl.className     = 'font-semibold tabular-nums text-success';
-            } else if (delta < 0) {
-                advLabelEl.textContent = 'Renting adv';
-                advValEl.textContent   = fmtCurrency(-delta);
-                advValEl.className     = 'font-semibold tabular-nums text-success';
-            } else {
-                advLabelEl.textContent = 'Break even';
-                advValEl.textContent   = '';
-                advValEl.className     = '';
-            }
+
+        if (bvrChartData && bvrChartData.multiMode && idx !== undefined) {
+            var worstBuy = bvrChartData.scenarios['worst'].yearly[idx].buyNW;
+            var flatBuy  = bvrChartData.scenarios['intro_forever'].yearly[idx].buyNW;
+            var bestBuy  = bvrChartData.scenarios['best'].yearly[idx].buyNW;
+            var rentNW   = entry.rentNW;
+            document.getElementById('bvr-legend-buy-worst').textContent = fmtCurrency(worstBuy);
+            document.getElementById('bvr-legend-buy').textContent       = fmtCurrency(flatBuy);
+            document.getElementById('bvr-legend-buy-best').textContent  = fmtCurrency(bestBuy);
+
+            var worstAdv = bvrAdvText(worstBuy - rentNW);
+            var bestAdv  = bvrAdvText(bestBuy  - rentNW);
+            var worstEl  = document.getElementById('bvr-legend-adv-worst');
+            var bestEl   = document.getElementById('bvr-legend-adv-best');
+            worstEl.textContent = worstAdv.label + ' ' + worstAdv.val;
+            worstEl.className   = worstAdv.cls;
+            bestEl.textContent  = bestAdv.label + ' ' + bestAdv.val;
+            bestEl.className    = bestAdv.cls;
+        } else {
+            document.getElementById('bvr-legend-buy').textContent = fmtCurrency(entry.buyNW);
+            var singleAdv   = bvrAdvText(entry.buyNW - entry.rentNW);
+            var advLabelEl  = document.getElementById('bvr-legend-adv-label');
+            var advValEl    = document.getElementById('bvr-legend-adv-val');
+            advLabelEl.textContent = singleAdv.label;
+            advValEl.textContent   = singleAdv.val;
+            advValEl.className     = singleAdv.cls;
         }
     }
 
@@ -782,24 +1119,101 @@
         hg.style.display = '';
         document.getElementById('bvr-hover-vline').setAttribute('x1', x.toFixed(1));
         document.getElementById('bvr-hover-vline').setAttribute('x2', x.toFixed(1));
-        document.getElementById('bvr-hc-buy').setAttribute('cx',  x.toFixed(1));
-        document.getElementById('bvr-hc-buy').setAttribute('cy',  bvrChartData.yS(entry.buyNW).toFixed(1));
+        if (bvrChartData.multiMode) {
+            [['worst', 'bvr-hc-buy-worst'], ['intro_forever', 'bvr-hc-buy-flat'], ['best', 'bvr-hc-buy-best']]
+                .forEach(function(pair) {
+                    var sc = pair[0], circId = pair[1];
+                    var scEntry = bvrChartData.scenarios[sc].yearly[idx];
+                    var c = document.getElementById(circId);
+                    if (c && scEntry) {
+                        c.setAttribute('cx', x.toFixed(1));
+                        c.setAttribute('cy', bvrChartData.yS(scEntry.buyNW).toFixed(1));
+                    }
+                });
+        } else {
+            document.getElementById('bvr-hc-buy').setAttribute('cx', x.toFixed(1));
+            document.getElementById('bvr-hc-buy').setAttribute('cy', bvrChartData.yS(entry.buyNW).toFixed(1));
+        }
         document.getElementById('bvr-hc-rent').setAttribute('cx', x.toFixed(1));
         document.getElementById('bvr-hc-rent').setAttribute('cy', bvrChartData.yS(entry.rentNW).toFixed(1));
-        updateBvrLegend(entry);
+        updateBvrLegend(entry, idx);
+    }
+
+    function bvrLegendPanelRect() {
+        if (!bvrLegendIsFloating()) return null;
+        var wrap  = document.getElementById('bvr-chart-wrap');
+        var panel = document.getElementById('bvr-legend-panel');
+        if (!wrap || !panel || panel.classList.contains('hidden') || !bvrChartData) return null;
+        var wRect = wrap.getBoundingClientRect();
+        var pRect = panel.getBoundingClientRect();
+        if (!wRect.width || !wRect.height) return null;
+        var scaleX = bvrChartData.W / wRect.width;
+        var scaleY = bvrChartData.H / wRect.height;
+        return {
+            x: (pRect.left - wRect.left) * scaleX,
+            y: (pRect.top - wRect.top) * scaleY,
+            w: pRect.width * scaleX,
+            h: pRect.height * scaleY
+        };
+    }
+
+    function bvrSegIntersectsRect(ax, ay, bx, by, rx, ry, rw, rh) {
+        var rRight = rx + rw, rBottom = ry + rh;
+        if (ax >= rx && ax <= rRight && ay >= ry && ay <= rBottom) return true;
+        if (bx >= rx && bx <= rRight && by >= ry && by <= rBottom) return true;
+        function segCross(x1, y1, x2, y2, x3, y3, x4, y4) {
+            var d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (Math.abs(d) < 1e-10) return false;
+            var t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / d;
+            var u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / d;
+            return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+        }
+        return segCross(ax, ay, bx, by, rx, ry, rRight, ry) ||
+               segCross(ax, ay, bx, by, rx, rBottom, rRight, rBottom) ||
+               segCross(ax, ay, bx, by, rx, ry, rx, rBottom) ||
+               segCross(ax, ay, bx, by, rRight, ry, rRight, rBottom);
+    }
+
+    function bvrLegendOverlapsLines() {
+        if (!bvrChartData || !bvrChartData.lineSets) return false;
+        var rect = bvrLegendPanelRect();
+        if (!rect) return false;
+        var pad = 2;
+        var rx = rect.x - pad, ry = rect.y - pad, rw = rect.w + pad * 2, rh = rect.h + pad * 2;
+        for (var li = 0; li < bvrChartData.lineSets.length; li++) {
+            var pts = bvrChartData.lineSets[li];
+            for (var i = 0; i < pts.length - 1; i++) {
+                if (bvrSegIntersectsRect(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], rx, ry, rw, rh)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function bvrUpdateLegendDimState() {
+        var panel = document.getElementById('bvr-legend-panel');
+        if (!panel || !bvrLegendIsFloating()) return;
+        panel.classList.toggle('bvr-legend-dimmed', bvrLegendOverlapsLines());
     }
 
     function onBvrChartHover(e) {
+        bvrChartHovered = true;
+        bvrUpdateLegendDimState();
         if (bvrChartLocked || !bvrChartData) return;
         bvrApplyCrosshair(bvrSnapToIdx(e.clientX));
     }
 
     function onBvrChartLeave() {
+        bvrChartHovered = false;
+        var panel = document.getElementById('bvr-legend-panel');
+        if (panel) panel.classList.remove('bvr-legend-dimmed');
         if (bvrChartLocked) return;
         var hg = document.getElementById('bvr-hover');
         if (hg) hg.style.display = 'none';
         if (bvrChartData && bvrChartData.yearly.length) {
-            updateBvrLegend(bvrChartData.yearly[bvrChartData.yearly.length - 1]);
+            var n = bvrChartData.yearly.length;
+            updateBvrLegend(bvrChartData.yearly[n - 1], n - 1);
         }
     }
 
@@ -823,29 +1237,60 @@
     // Callout Rendering
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function renderBvrCallout(results) {
-        var iconEl     = document.getElementById('bvr-callout-icon');
-        var textEl     = document.getElementById('bvr-callout-text');
-        var buyPayoff  = document.getElementById('bvr-legend-buy-payoff');
-        var rentPayoff = document.getElementById('bvr-legend-rent-payoff');
-        var hvPayoff   = document.getElementById('bvr-legend-home-value-payoff');
-        var advInline  = document.getElementById('bvr-legend-adv-inline');
+    function renderBvrCallout(results, scenarios) {
+        var iconEl          = document.getElementById('bvr-callout-icon');
+        var textEl          = document.getElementById('bvr-callout-text');
+        var buyPayoff       = document.getElementById('bvr-legend-buy-payoff');
+        var buyWorstPayoff  = document.getElementById('bvr-legend-buy-worst-payoff');
+        var buyBestPayoff   = document.getElementById('bvr-legend-buy-best-payoff');
+        var rentPayoff      = document.getElementById('bvr-legend-rent-payoff');
+        var hvPayoff        = document.getElementById('bvr-legend-home-value-payoff');
 
         if (!results) {
             iconEl.textContent = '';
             textEl.className   = 'text-base-content/50 text-sm';
             textEl.textContent = 'Enter a down payment and monthly rent to see the analysis.';
-            if (buyPayoff)  buyPayoff.textContent  = '—';
-            if (rentPayoff) rentPayoff.textContent = '—';
-            if (hvPayoff)   hvPayoff.textContent   = '—';
-            if (advInline)  advInline.classList.add('hidden');
+            if (buyPayoff)      buyPayoff.textContent      = '—';
+            if (buyWorstPayoff) buyWorstPayoff.textContent = '—';
+            if (buyBestPayoff)  buyBestPayoff.textContent  = '—';
+            if (rentPayoff)     rentPayoff.textContent     = '—';
+            if (hvPayoff)       hvPayoff.textContent       = '—';
             return;
         }
 
         var fb = results.finalBuyNW, fr = results.finalRentNW;
         var fhv = results.yearly.length ? results.yearly[results.yearly.length - 1].homeValue : null;
 
-        if (results.breakEvenYear !== null) {
+        // For ARM, prefer a range readout that summarises break-even across
+        // all four scenarios. Falls back to single-scenario phrasing when no
+        // scenarios object is supplied (FRM case).
+        if (scenarios) {
+            var beYears = [];
+            ARM_SCENARIOS.forEach(function(sc) {
+                if (scenarios[sc].breakEvenYear !== null) beYears.push(scenarios[sc].breakEvenYear);
+            });
+            var nScen = ARM_SCENARIOS.length;
+            if (beYears.length === nScen) {
+                var lo = Math.min.apply(null, beYears);
+                var hi = Math.max.apply(null, beYears);
+                iconEl.textContent = '✓';
+                textEl.className   = 'text-success font-semibold text-sm';
+                textEl.textContent = lo === hi
+                    ? 'Buying breaks even at year ' + lo + ' (all scenarios).'
+                    : 'Buying breaks even between year ' + lo + ' and year ' + hi + ' across scenarios.';
+            } else if (beYears.length > 0) {
+                var loP = Math.min.apply(null, beYears);
+                var hiP = Math.max.apply(null, beYears);
+                iconEl.textContent = '~';
+                textEl.className   = 'text-warning font-semibold text-sm';
+                textEl.textContent = 'Buying breaks even in ' + beYears.length + '/' + nScen + ' scenarios (year ' +
+                    (loP === hiP ? loP : (loP + '–' + hiP)) + '); others never break even.';
+            } else {
+                iconEl.textContent = '✗';
+                textEl.className   = 'text-error font-semibold text-sm';
+                textEl.textContent = 'Renting stays ahead through payoff in all scenarios.';
+            }
+        } else if (results.breakEvenYear !== null) {
             iconEl.textContent = '✓';
             textEl.className   = 'text-success font-semibold text-sm';
             textEl.textContent = 'Buying breaks even at year ' + results.breakEvenYear + '.';
@@ -859,17 +1304,25 @@
             textEl.textContent = 'Renting stays ahead through the full ' + results.termYears + '-year term.';
         }
 
-        if (buyPayoff)  buyPayoff.textContent  = fb  !== null ? fmtCurrency(fb)  : '—';
+        if (scenarios) {
+            var worstFb = scenarios['worst'].finalBuyNW;
+            var flatFb  = scenarios['intro_forever'].finalBuyNW;
+            var bestFb  = scenarios['best'].finalBuyNW;
+            if (buyPayoff)      buyPayoff.textContent      = flatFb  !== null ? fmtCurrency(flatFb)  : '—';
+            if (buyWorstPayoff) buyWorstPayoff.textContent = worstFb !== null ? fmtCurrency(worstFb) : '—';
+            if (buyBestPayoff)  buyBestPayoff.textContent  = bestFb  !== null ? fmtCurrency(bestFb)  : '—';
+        } else {
+            if (buyPayoff) buyPayoff.textContent = fb !== null ? fmtCurrency(fb) : '—';
+        }
         if (rentPayoff) rentPayoff.textContent = fr  !== null ? fmtCurrency(fr)  : '—';
         if (hvPayoff)   hvPayoff.textContent   = fhv !== null ? fmtCurrency(fhv) : '—';
-        if (advInline)  advInline.classList.remove('hidden');
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Table Rendering
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function renderBvrTable(results) {
+    function renderBvrTable(results, tableScen, isArm) {
         var tbody = document.getElementById('bvr-tbody');
         tbody.innerHTML = '';
         if (!results || !results.yearly.length) return;
@@ -899,9 +1352,10 @@
     // ═══════════════════════════════════════════════════════════════════════════
 
     function updateHomeValueHeader(loan, a) {
-        var wrap = document.getElementById('bvr-legend-home-value');
-        var dp = a.downPayment || 0;
-        wrap.style.display = (dp > 0 && loan) ? 'contents' : 'none';
+        var show = (a.downPayment || 0) > 0 && !!loan;
+        var disp = show ? 'contents' : 'none';
+        document.getElementById('bvr-legend-home-value').style.display           = disp;
+        document.getElementById('bvr-legend-home-value-payoff-wrap').style.display = disp;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -918,23 +1372,55 @@
         saveAssumptions(a);
         updateHomeValueHeader(loan, a);
 
+        // If the graph changes at all, discard any stored legend placement for this loan.
+        // This keeps "per-loan" positions from sticking to a materially different chart.
+        try {
+            var sigKey = bvrLegendSigKeyFor(selectedLoanId);
+            var newSig = bvrGraphSignature(loan, a);
+            var oldSig = localStorage.getItem(sigKey);
+            if (oldSig && oldSig !== newSig) {
+                localStorage.removeItem(bvrLegendPosKeyFor(selectedLoanId));
+            }
+            localStorage.setItem(sigKey, newSig);
+        } catch(e) {}
+
         if (!a.downPayment || !a.monthlyRent) {
-            lastBvrResults = null;
-            bvrChartData   = null;
-            bvrChartLocked = false;
-            renderBvrCallout(null);
+        lastBvrResults      = null;
+        lastBvrChartResults = null;
+        lastBvrScenarios    = null;
+        bvrChartData        = null;
+            bvrChartLocked   = false;
+            renderBvrCallout(null, null);
             var svg = document.getElementById('bvr-chart');
             while (svg.firstChild) svg.removeChild(svg.firstChild);
-            document.getElementById('bvr-chart-legend').classList.add('hidden');
+            document.getElementById('bvr-legend-panel').classList.add('hidden');
             document.getElementById('bvr-tbody').innerHTML = '';
             return;
         }
 
-        var results    = runBvR(loan, a);
-        lastBvrResults = results;
-        renderBvrCallout(results);
-        renderBvrTable(results);
-        requestAnimationFrame(function() { renderBvrChart(results); });
+        var isArm = loan.loan_type === 'arm';
+        var scenarios = null;
+        if (isArm) {
+            scenarios = {};
+            ARM_SCENARIOS.forEach(function(sc) {
+                scenarios[sc] = runBvR(loan, a, sc);
+            });
+        }
+        // Single-scenario result for the table. For FRM the rate is flat so
+        // any scenario produces the same numbers; we use intro_forever.
+        var tableScen = isArm ? bvrTableScenario : 'intro_forever';
+        var results   = isArm ? scenarios[tableScen] : runBvR(loan, a, 'intro_forever');
+        // Chart uses its own scenario baseline (driven by the top Scenario
+        // selector) so the renter line never shifts when the schedule strip
+        // is changed independently.
+        var chartScen    = isArm ? chartScenarioFor(bvrScenario) : 'intro_forever';
+        var chartResults = isArm ? scenarios[chartScen] : results;
+        lastBvrResults      = results;
+        lastBvrChartResults = chartResults;
+        lastBvrScenarios    = scenarios;
+        renderBvrCallout(results, scenarios);
+        renderBvrTable(results, tableScen, isArm);
+        requestAnimationFrame(function() { renderBvrChart(chartResults, scenarios); });
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -970,11 +1456,33 @@
 
     document.getElementById('bvr-itemize').addEventListener('change', runAndRenderBvR);
 
+    // ── ARM scenario controls ────────────────────────────────────────────────
+    document.getElementById('bvr-scenario-control').addEventListener('click', function(e) {
+        var btn = e.target.closest('button[data-scenario]');
+        if (!btn) return;
+        bvrScenario = btn.getAttribute('data-scenario');
+        localStorage.setItem(BVR_SCENARIO_KEY, bvrScenario);
+        // Sync table scenario to a sensible default for the new chart view;
+        // user can re-pick via the table strip afterwards.
+        bvrTableScenario = tableScenarioFor(bvrScenario);
+        localStorage.setItem(BVR_TABLE_SCEN_KEY, bvrTableScenario);
+        // Refresh active-button styling for the chart strip.
+        this.querySelectorAll('button[data-scenario]').forEach(function(b) {
+            b.classList.toggle('btn-active', b.getAttribute('data-scenario') === bvrScenario);
+        });
+        // Drop any pinned cursor — index meaning may differ across modes.
+        bvrLockedIdx   = null;
+        bvrChartLocked = false;
+        var pinBadge = document.getElementById('bvr-legend-pin-badge');
+        if (pinBadge) pinBadge.classList.add('hidden');
+        runAndRenderBvR();
+    });
+
     // Re-render chart on resize
     if (typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(function() {
-            if (lastBvrResults) {
-                requestAnimationFrame(function() { renderBvrChart(lastBvrResults); });
+            if (lastBvrChartResults) {
+                requestAnimationFrame(function() { renderBvrChart(lastBvrChartResults, lastBvrScenarios); });
             }
         }).observe(document.getElementById('bvr-chart-wrap'));
     }
@@ -985,6 +1493,103 @@
     // fmtPreview / setPreviewVal defined in mortgage-common.js
     // openLoanModal + loan-detail-modal close listener + floating preview
     // panel drag/toggle defined in mortgage-loan-detail.js
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BVR legend: collapsible "At payoff" section
+    // ═══════════════════════════════════════════════════════════════════════════
+    (function() {
+        var body    = document.getElementById('bvr-payoff-body');
+        var chevron = document.getElementById('bvr-payoff-chevron');
+        var btn     = document.getElementById('bvr-payoff-toggle');
+
+        function setOpen(open) {
+            body.style.display = open ? '' : 'none';
+            chevron.style.transform = open ? '' : 'rotate(-90deg)';
+            btn.title = open ? 'Collapse' : 'Expand';
+            try { localStorage.setItem('bvr-payoff-open', open ? '1' : '0'); } catch(e) {}
+        }
+
+        // Restore persisted state (default: collapsed).
+        try {
+            if (localStorage.getItem('bvr-payoff-open') === '1') setOpen(true);
+        } catch(e) {}
+
+        btn.addEventListener('click', function() {
+            setOpen(body.style.display === 'none');
+        });
+    })();
+
+    // BVR legend panel: drag (sm+ only) + minimize toggle
+    // ═══════════════════════════════════════════════════════════════════════════
+    (function() {
+        var wrap    = document.getElementById('bvr-chart-legend-host');
+        var panel   = document.getElementById('bvr-legend-panel');
+        var header  = document.getElementById('bvr-legend-header');
+        var body    = document.getElementById('bvr-legend-body');
+        var chevron = document.getElementById('bvr-legend-chevron');
+        var toggle  = document.getElementById('bvr-legend-toggle');
+        var dragging = false, ox, oy;
+        var moved = false;
+
+        window.matchMedia('(min-width: 640px)').addEventListener('change', bvrSyncLegendPanelLayout);
+
+        toggle.addEventListener('click', function() {
+            var collapsed = body.style.display === 'none';
+            body.style.display = collapsed ? '' : 'none';
+            chevron.style.transform = collapsed ? '' : 'rotate(-90deg)';
+            toggle.title = collapsed ? 'Minimize' : 'Expand';
+            if (bvrChartHovered) bvrUpdateLegendDimState();
+        });
+
+        header.addEventListener('mousedown', function(e) {
+            if (!bvrLegendIsFloating() || e.target.closest('button')) return;
+            dragging = true;
+            moved = false;
+            var wrapRect  = wrap.getBoundingClientRect();
+            var panelRect = panel.getBoundingClientRect();
+            panel.style.bottom = 'auto';
+            panel.style.right  = 'auto';
+            panel.style.top    = (panelRect.top - wrapRect.top) + 'px';
+            panel.style.left   = (panelRect.left - wrapRect.left) + 'px';
+            ox = e.clientX - panelRect.left;
+            oy = e.clientY - panelRect.top;
+            header.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!dragging || !bvrLegendIsFloating()) return;
+            var wrapRect  = wrap.getBoundingClientRect();
+            var panelRect = panel.getBoundingClientRect();
+            var left = e.clientX - wrapRect.left - ox;
+            var top  = e.clientY - wrapRect.top - oy;
+            left = Math.max(0, Math.min(wrapRect.width - panelRect.width, left));
+            top  = Math.max(0, Math.min(wrapRect.height - panelRect.height, top));
+            panel.style.left = left + 'px';
+            panel.style.top  = top + 'px';
+            moved = true;
+            if (bvrChartHovered) bvrUpdateLegendDimState();
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (!dragging) return;
+            dragging = false;
+            header.style.cursor = '';
+            if (!moved || !selectedLoanId || !bvrLegendIsFloating()) return;
+            try {
+                var wrapRect = wrap.getBoundingClientRect();
+                var panelRect = panel.getBoundingClientRect();
+                if (!wrapRect.width || !wrapRect.height) return;
+                var left = panelRect.left - wrapRect.left;
+                var top  = panelRect.top  - wrapRect.top;
+                // Store normalized so it survives responsive resizing reasonably well.
+                localStorage.setItem(bvrLegendPosKeyFor(selectedLoanId), JSON.stringify({
+                    lPct: left / wrapRect.width,
+                    tPct: top  / wrapRect.height
+                }));
+            } catch(e) {}
+        });
+    })();
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Init
@@ -1000,6 +1605,9 @@
     #bvr-assumptions-modal .modal-box {
         max-height: calc(100dvh - 5em);
         overflow-y: auto;
+    }
+    #bvr-legend-panel.bvr-legend-dimmed {
+        opacity: 0.45;
     }
 </style>
 {% endblock %}

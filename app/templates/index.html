@@ -10,6 +10,26 @@
         user-select: none;
         transition: filter 0.15s ease;
     }
+
+    /* Tall loan forms on mobile: keep action buttons above browser bottom chrome */
+    .loan-form-modal {
+        display: flex;
+        flex-direction: column;
+        max-height: min(calc(100dvh - 1rem), calc(100svh - 1rem));
+        width: calc(100% - 2rem);
+        padding-bottom: 0;
+    }
+    .loan-form-modal__body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .loan-form-modal__actions {
+        flex-shrink: 0;
+        padding-top: 0.75rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    }
 </style>
 <div class="m-2">
     <button type="button"
@@ -18,7 +38,7 @@
         + Add Loan
     </button>
     <div class="flex flex-col md:flex-row gap-2 md:items-start w-full">
-        <aside class="hidden md:block w-72 shrink-0 space-y-2">
+        <aside class="hidden md:block w-80 shrink-0 space-y-2">
             <h2 class="text-xl font-bold my-4 mx-2">New Loan</h2>
 
             <div id="pdf-drop-zone"
@@ -39,6 +59,18 @@
                 <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                     <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
                     <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                        <div class="flex gap-4" data-loan-type-toggle="">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="loan_type" value="fixed" class="radio radio-xs" checked>
+                                <span class="text-sm">Fixed</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="loan_type" value="arm" class="radio radio-xs">
+                                <span class="text-sm">ARM</span>
+                            </label>
+                        </div>
+
                         <label for="name" class="label-text font-medium whitespace-nowrap">Name</label>
                         <input type="text"
                                id="name"
@@ -71,7 +103,7 @@
                             <span class="text-base-content/60">yrs</span>
                         </label>
 
-                        <label for="interest_rate" class="label-text font-medium whitespace-nowrap">Interest</label>
+                        <label for="interest_rate" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <input type="text"
                                    inputmode="decimal"
@@ -81,6 +113,53 @@
                                    class="grow min-w-0">
                             <span class="text-base-content/60">%</span>
                         </label>
+                    </div>
+                </fieldset>
+
+                <fieldset id="arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
+                        <select id="arm_product" class="select select-bordered select-sm w-full">
+                            <option value="3/6">3/6mo</option>
+                            <option value="5/6">5/6mo</option>
+                            <option value="5/1">5/1y</option>
+                            <option value="7/6" selected>7/6mo</option>
+                            <option value="7/1">7/1y</option>
+                            <option value="10/6">10/6mo</option>
+                            <option value="10/1">10/1y</option>
+                            <option value="custom">Custom…</option>
+                        </select>
+
+                        <label for="arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                            <input type="number" id="arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0">
+                            <span class="text-base-content/60">yrs</span>
+                        </label>
+
+                        <label for="arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                            <input type="number" id="arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0">
+                            <span class="text-base-content/60">mo</span>
+                        </label>
+
+                        <label for="arm_margin"
+                               class="label-text font-medium whitespace-nowrap"
+                               title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="text" inputmode="decimal" id="arm_margin" placeholder="0.000" class="grow min-w-0">
+                            <span class="text-base-content/60">%</span>
+                        </label>
+
+                        <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                        <div class="flex items-center gap-1 w-full">
+                            <input type="number" inputmode="numeric" min="0" step="1" id="arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap">
+                            <span class="text-base-content/40 text-sm">/</span>
+                            <input type="number" inputmode="numeric" min="0" step="1" id="arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap">
+                            <span class="text-base-content/40 text-sm">/</span>
+                            <input type="number" inputmode="numeric" min="0" step="1" id="arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap">
+                        </div>
+
                     </div>
                 </fieldset>
 
@@ -160,16 +239,17 @@
                     </div>
                 </fieldset>
 
-                <div class="mx-2 my-4 flex gap-2">
-                    <button type="button" id="add-loan-btn" class="btn btn-primary flex-1">Add</button>
-                    <button type="button" id="clear-form-btn" class="btn btn-ghost flex-none">Clear</button>
+                <div class="mx-2 mt-4 flex gap-2">
+                    <button type="button" id="add-loan-btn" class="btn btn-sm btn-primary flex-1">Add</button>
+                    <button type="button" id="clear-form-btn" class="btn btn-sm btn-ghost flex-none">Clear</button>
                 </div>
             </form>
         </aside>
 
         <section class="flex-1 min-w-0 w-full mb-2 space-y-2">
-            <h2 class="text-xl font-bold my-4 mx-2">Loans</h2>
-            <!-- Future: Years (N) input for total-paid column -->
+            <div class="flex items-center justify-between my-4 mx-2 gap-2 flex-wrap">
+                <h2 class="text-xl font-bold">Loans</h2>
+            </div>
 
             <div class="overflow-x-auto">
                 <table class="table table-zebra table-sm w-max min-w-full">
@@ -181,7 +261,7 @@
                             <th class="p-2 text-right cursor-pointer select-none" data-sort-key="term_years">Term </th>
                             <th class="p-2 text-right cursor-pointer select-none" data-sort-key="pi">P&amp;I / mo </th>
                             <th class="p-2 text-right cursor-pointer select-none" data-sort-key="monthly_total">Total / mo </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="closing">Closing Costs </th>
+                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="closing">Closing </th>
                             <th class="p-2"></th>
                         </tr>
                     </thead>
@@ -201,12 +281,24 @@
 {% include "_preview_panel.html" %}
 
 <dialog id="add-loan-mobile-modal" class="modal">
-    <div class="modal-box max-w-sm">
-        <h3 class="font-bold text-lg mb-4">Add Loan</h3>
-        <div class="space-y-3">
+    <div class="modal-box max-w-sm loan-form-modal">
+        <h3 class="font-bold text-lg mb-4 shrink-0">Add Loan</h3>
+        <div class="loan-form-modal__body space-y-3">
             <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                 <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
                 <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                    <div class="flex gap-4" data-loan-type-toggle="mob_">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="mob_loan_type" value="fixed" class="radio radio-xs" checked>
+                            <span class="text-sm">Fixed</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="mob_loan_type" value="arm" class="radio radio-xs">
+                            <span class="text-sm">ARM</span>
+                        </label>
+                    </div>
+
                     <label for="mob_name" class="label-text font-medium whitespace-nowrap">Name</label>
                     <input type="text" id="mob_name" name="mob_name" placeholder="Nickname for loan" class="input input-bordered input-sm w-full" autocomplete="off">
 
@@ -222,11 +314,58 @@
                         <span class="text-base-content/60">yrs</span>
                     </label>
 
-                    <label for="mob_interest_rate" class="label-text font-medium whitespace-nowrap">Interest</label>
+                    <label for="mob_interest_rate" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
                     <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                         <input type="text" inputmode="decimal" id="mob_interest_rate" name="mob_interest_rate" placeholder="0.000" class="grow min-w-0" autocomplete="off">
                         <span class="text-base-content/60">%</span>
                     </label>
+                </div>
+            </fieldset>
+
+            <fieldset id="mob_arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="mob_">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="mob_arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
+                    <select id="mob_arm_product" class="select select-bordered select-sm w-full">
+                        <option value="3/6">3/6mo</option>
+                        <option value="5/6">5/6mo</option>
+                        <option value="5/1">5/1y</option>
+                        <option value="7/6" selected>7/6mo</option>
+                        <option value="7/1">7/1y</option>
+                        <option value="10/6">10/6mo</option>
+                        <option value="10/1">10/1y</option>
+                        <option value="custom">Custom…</option>
+                    </select>
+
+                    <label for="mob_arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                        <input type="number" id="mob_arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">yrs</span>
+                    </label>
+
+                    <label for="mob_arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                        <input type="number" id="mob_arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">mo</span>
+                    </label>
+
+                    <label for="mob_arm_margin"
+                           class="label-text font-medium whitespace-nowrap"
+                           title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="text" inputmode="decimal" id="mob_arm_margin" placeholder="0.000" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+
+                    <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                    <div class="flex items-center gap-1 w-full">
+                        <input type="number" inputmode="numeric" min="0" step="1" id="mob_arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap" autocomplete="off">
+                        <span class="text-base-content/40 text-sm">/</span>
+                        <input type="number" inputmode="numeric" min="0" step="1" id="mob_arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap" autocomplete="off">
+                        <span class="text-base-content/40 text-sm">/</span>
+                        <input type="number" inputmode="numeric" min="0" step="1" id="mob_arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap" autocomplete="off">
+                    </div>
+
                 </div>
             </fieldset>
 
@@ -277,24 +416,36 @@
             </fieldset>
         </div>
 
-        <div class="modal-action mt-4">
-            <button type="button" id="mob-add-loan-btn" class="btn btn-primary flex-1">Add</button>
-            <button type="button" id="mob-clear-form-btn" class="btn btn-ghost flex-none">Clear</button>
-            <form method="dialog"><button class="btn btn-ghost">Cancel</button></form>
+        <div class="modal-action mt-4 loan-form-modal__actions">
+            <button type="button" id="mob-add-loan-btn" class="btn btn-sm btn-primary flex-1">Add</button>
+            <button type="button" id="mob-clear-form-btn" class="btn btn-sm btn-ghost flex-none">Clear</button>
+            <form method="dialog"><button class="btn btn-sm btn-ghost">Cancel</button></form>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 
 <dialog id="edit-loan-modal" class="modal">
-    <div class="modal-box max-w-sm">
-        <h3 class="font-bold text-lg mb-4">Edit Loan</h3>
+    <div class="modal-box max-w-sm loan-form-modal">
+        <h3 class="font-bold text-lg mb-4 shrink-0">Edit Loan</h3>
         <input type="hidden" id="edit_id">
 
-        <div class="space-y-3">
+        <div class="loan-form-modal__body space-y-3">
             <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                 <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
                 <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                    <div class="flex gap-4" data-loan-type-toggle="edit_">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="edit_loan_type" value="fixed" class="radio radio-xs" checked>
+                            <span class="text-sm">Fixed</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="edit_loan_type" value="arm" class="radio radio-xs">
+                            <span class="text-sm">ARM</span>
+                        </label>
+                    </div>
+
                     <label for="edit_name" class="label-text font-medium whitespace-nowrap">Name</label>
                     <input type="text" id="edit_name" class="input input-bordered input-sm w-full" autocomplete="off">
 
@@ -310,11 +461,58 @@
                         <span class="text-base-content/60">yrs</span>
                     </label>
 
-                    <label for="edit_interest" class="label-text font-medium whitespace-nowrap">Interest</label>
+                    <label for="edit_interest" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
                     <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                         <input type="text" inputmode="decimal" id="edit_interest" placeholder="0.000" class="grow min-w-0" autocomplete="off">
                         <span class="text-base-content/60">%</span>
                     </label>
+                </div>
+            </fieldset>
+
+            <fieldset id="edit_arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="edit_">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="edit_arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
+                    <select id="edit_arm_product" class="select select-bordered select-sm w-full">
+                        <option value="3/6">3/6mo</option>
+                        <option value="5/6">5/6mo</option>
+                        <option value="5/1">5/1y</option>
+                        <option value="7/6" selected>7/6mo</option>
+                        <option value="7/1">7/1y</option>
+                        <option value="10/6">10/6mo</option>
+                        <option value="10/1">10/1y</option>
+                        <option value="custom">Custom…</option>
+                    </select>
+
+                    <label for="edit_arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                        <input type="number" id="edit_arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">yrs</span>
+                    </label>
+
+                    <label for="edit_arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                        <input type="number" id="edit_arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">mo</span>
+                    </label>
+
+                    <label for="edit_arm_margin"
+                           class="label-text font-medium whitespace-nowrap"
+                           title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="text" inputmode="decimal" id="edit_arm_margin" placeholder="0.000" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+
+                    <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                    <div class="flex items-center gap-1 w-full">
+                        <input type="number" inputmode="numeric" min="0" step="1" id="edit_arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap" autocomplete="off">
+                        <span class="text-base-content/40 text-sm">/</span>
+                        <input type="number" inputmode="numeric" min="0" step="1" id="edit_arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap" autocomplete="off">
+                        <span class="text-base-content/40 text-sm">/</span>
+                        <input type="number" inputmode="numeric" min="0" step="1" id="edit_arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap" autocomplete="off">
+                    </div>
+
                 </div>
             </fieldset>
 
@@ -365,7 +563,7 @@
             </fieldset>
         </div>
 
-        <div class="modal-action mt-4">
+        <div class="modal-action mt-4 loan-form-modal__actions">
             <button id="edit-save-btn" class="btn btn-primary btn-sm">Save</button>
             <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
         </div>
@@ -388,14 +586,26 @@
 </dialog>
 
 <dialog id="pdf-import-modal" class="modal">
-    <div class="modal-box max-w-sm">
-        <h3 class="font-bold text-lg mb-1">Review PDF Import</h3>
-        <p class="text-xs text-base-content/50 mb-4">Values extracted from the PDF — review and edit before adding.</p>
+    <div class="modal-box max-w-sm loan-form-modal">
+        <h3 class="font-bold text-lg mb-1 shrink-0">Review PDF Import</h3>
+        <p class="text-xs text-base-content/50 mb-4 shrink-0">Values extracted from the PDF — review and edit before adding.</p>
 
-        <div class="space-y-3">
+        <div class="loan-form-modal__body space-y-3">
             <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                 <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
                 <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                    <div class="flex gap-4" data-loan-type-toggle="pdf_">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="pdf_loan_type" value="fixed" class="radio radio-xs" checked>
+                            <span class="text-sm">Fixed</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="pdf_loan_type" value="arm" class="radio radio-xs">
+                            <span class="text-sm">ARM</span>
+                        </label>
+                    </div>
+
                     <label for="pdf_name" class="label-text font-medium whitespace-nowrap">Name</label>
                     <input type="text" id="pdf_name" class="input input-bordered input-sm w-full" autocomplete="off">
 
@@ -411,11 +621,58 @@
                         <span class="text-base-content/60">yrs</span>
                     </label>
 
-                    <label for="pdf_interest" class="label-text font-medium whitespace-nowrap">Interest</label>
+                    <label for="pdf_interest" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
                     <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                         <input type="text" inputmode="decimal" id="pdf_interest" placeholder="0.000" class="grow min-w-0" autocomplete="off">
                         <span class="text-base-content/60">%</span>
                     </label>
+                </div>
+            </fieldset>
+
+            <fieldset id="pdf_arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="pdf_">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                    <label for="pdf_arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
+                    <select id="pdf_arm_product" class="select select-bordered select-sm w-full">
+                        <option value="3/6">3/6mo</option>
+                        <option value="5/6">5/6mo</option>
+                        <option value="5/1">5/1y</option>
+                        <option value="7/6" selected>7/6mo</option>
+                        <option value="7/1">7/1y</option>
+                        <option value="10/6">10/6mo</option>
+                        <option value="10/1">10/1y</option>
+                        <option value="custom">Custom…</option>
+                    </select>
+
+                    <label for="pdf_arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                        <input type="number" id="pdf_arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">yrs</span>
+                    </label>
+
+                    <label for="pdf_arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
+                        <input type="number" id="pdf_arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">mo</span>
+                    </label>
+
+                    <label for="pdf_arm_margin"
+                           class="label-text font-medium whitespace-nowrap"
+                           title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
+                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                        <input type="text" inputmode="decimal" id="pdf_arm_margin" placeholder="0.000" class="grow min-w-0" autocomplete="off">
+                        <span class="text-base-content/60">%</span>
+                    </label>
+
+                    <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                    <div class="flex items-center gap-1 w-full">
+                        <input type="number" inputmode="numeric" min="0" step="1" id="pdf_arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap" autocomplete="off">
+                        <span class="text-base-content/40 text-sm">/</span>
+                        <input type="number" inputmode="numeric" min="0" step="1" id="pdf_arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap" autocomplete="off">
+                        <span class="text-base-content/40 text-sm">/</span>
+                        <input type="number" inputmode="numeric" min="0" step="1" id="pdf_arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap" autocomplete="off">
+                    </div>
+
                 </div>
             </fieldset>
 
@@ -466,7 +723,7 @@
             </fieldset>
         </div>
 
-        <div class="modal-action mt-4">
+        <div class="modal-action mt-4 loan-form-modal__actions">
             <button id="pdf-import-confirm-btn" class="btn btn-primary btn-sm">Add Loan</button>
             <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
         </div>
@@ -582,12 +839,11 @@
 
     // fmtPreview / setPreviewVal / escHtml defined in mortgage-common.js
 
+    // Thin wrapper over the shared engine in mortgage-common.js so this
+    // page can stay readable. For ARM loans, returns the introductory-period
+    // P&I, which matches today's headline-number semantics.
     function computePI(principal, annualRatePct, termYears) {
-        if (principal <= 0 || termYears <= 0) return 0;
-        if (annualRatePct <= 0) return principal / (termYears * 12);
-        var r = annualRatePct / 100 / 12;
-        var n = termYears * 12;
-        return principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+        return computePayment(principal, annualRatePct, Math.round(termYears * 12));
     }
 
     function readFormInputs() {
@@ -602,11 +858,139 @@
             prop_tax:    parseFloat(document.getElementById('prop_tax').value.replace(/,/g, ''))      || 0,
             hoa:         parseFloat(document.getElementById('hoa').value.replace(/,/g, ''))           || 0,
             insurance:   parseFloat(document.getElementById('insurance').value.replace(/,/g, ''))     || 0,
+            loan_type:   readLoanType(''),
+            arm:         readArmInputs(''),
         };
     }
 
+    // ── Loan Type toggle / ARM form helpers ───────────────────────────────────
+    // Each of the four forms (desktop add, mobile add modal, edit modal,
+    // PDF review modal) embeds the same ARM panel skeleton with a fixed
+    // id prefix; these helpers parameterize over that prefix so all four
+    // share the same code paths.
+
+    function readLoanType(prefix) {
+        var r = document.querySelector('input[name="' + prefix + 'loan_type"]:checked');
+        return r ? r.value : 'fixed';
+    }
+
+    function readArmInputs(prefix) {
+        var get   = function(id) { return document.getElementById(prefix + id); };
+        var val   = function(el) { return el ? el.value : ''; };
+        var num   = function(el) { return el ? (parseFloat(el.value) || 0) : 0; };
+        var pick  = get('arm_product');
+        var product = pick ? pick.value : '7/6';
+        var fixedYears, interval;
+        if (product === 'custom') {
+            fixedYears = parseInt(val(get('arm_fixed_years'))) || 7;
+            interval   = parseInt(val(get('arm_interval')))    || 6;
+        } else {
+            var parts = product.split('/');
+            fixedYears = parseInt(parts[0]) || 7;
+            interval   = parts[1] === '1' ? 12 : (parseInt(parts[1]) || 6);
+        }
+        return {
+            fixed_period_years:         fixedYears,
+            adjustment_interval_months: interval,
+            margin:                     num(get('arm_margin')),
+            cap_initial:                num(get('arm_cap_initial'))  || 2,
+            cap_periodic:               num(get('arm_cap_periodic')) || 2,
+            cap_lifetime:               num(get('arm_cap_lifetime')) || 5
+        };
+    }
+
+    function setArmInputs(prefix, arm) {
+        if (!arm) return;
+        var get = function(id) { return document.getElementById(prefix + id); };
+        // Map (fixed_period_years, adjustment_interval_months) back to a product label
+        var productLabel = 'custom';
+        for (var i = 0; i < ARM_PRODUCTS.length; i++) {
+            var p = ARM_PRODUCTS[i];
+            if (p.fixed_period_years === arm.fixed_period_years &&
+                p.adjustment_interval_months === arm.adjustment_interval_months) {
+                productLabel = p.label;
+                break;
+            }
+        }
+        var pick = get('arm_product');
+        if (pick) pick.value = productLabel;
+        showArmCustomRow(prefix, productLabel === 'custom');
+        if (get('arm_fixed_years')) get('arm_fixed_years').value = arm.fixed_period_years;
+        if (get('arm_interval'))    get('arm_interval').value    = arm.adjustment_interval_months;
+        setDecimalInput(get('arm_margin'),       arm.margin);
+        if (get('arm_cap_initial'))  get('arm_cap_initial').value  = Math.round(arm.cap_initial  || 2);
+        if (get('arm_cap_periodic')) get('arm_cap_periodic').value = Math.round(arm.cap_periodic || 2);
+        if (get('arm_cap_lifetime')) get('arm_cap_lifetime').value = Math.round(arm.cap_lifetime || 5);
+    }
+
+    function showArmCustomRow(prefix, show) {
+        var panel = document.querySelector('[data-arm-panel="' + prefix + '"]');
+        if (!panel) return;
+        panel.querySelectorAll('[data-arm-custom]').forEach(function(el) {
+            el.classList.toggle('hidden', !show);
+        });
+    }
+
+    function setArmPanelVisible(prefix, visible) {
+        var panel = document.querySelector('[data-arm-panel="' + prefix + '"]');
+        if (panel) panel.classList.toggle('hidden', !visible);
+        var scope = panel ? panel.closest('form, dialog') : document;
+        if (scope) {
+            var label = scope.querySelector('[data-arm-intro-label]');
+            if (label) label.textContent = visible ? 'Intro Rate' : 'Interest';
+        }
+    }
+
+    function setLoanType(prefix, type) {
+        var radio = document.querySelector('input[name="' + prefix + 'loan_type"][value="' + type + '"]');
+        if (radio) radio.checked = true;
+        setArmPanelVisible(prefix, type === 'arm');
+    }
+
+    // Wire up loan type radio + ARM product picker for a given prefix.
+    // Calls onChange (if provided) after any change so the host page can
+    // refresh its live preview.
+    function attachArmToggle(prefix, onChange) {
+        var radios = document.querySelectorAll('input[name="' + prefix + 'loan_type"]');
+        radios.forEach(function(r) {
+            r.addEventListener('change', function() {
+                var type = this.value;
+                if (type === 'arm') {
+                    // First-time switch: fill defaults if the panel is empty
+                    var marEl  = document.getElementById(prefix + 'arm_margin');
+                    var empty  = !marEl || !marEl.value.trim();
+                    if (empty) {
+                        setArmInputs(prefix, defaultArm());
+                    }
+                }
+                setLoanType(prefix, type);
+                if (onChange) onChange();
+            });
+        });
+        var pick = document.getElementById(prefix + 'arm_product');
+        if (pick) {
+            pick.addEventListener('change', function() {
+                showArmCustomRow(prefix, this.value === 'custom');
+                if (!this.value || this.value === 'custom') {
+                    if (onChange) onChange();
+                    return;
+                }
+                var parts = this.value.split('/');
+                var fy = parseInt(parts[0]) || 7;
+                var iv = parts[1] === '1' ? 12 : (parseInt(parts[1]) || 6);
+                var fyEl = document.getElementById(prefix + 'arm_fixed_years');
+                var ivEl = document.getElementById(prefix + 'arm_interval');
+                if (fyEl) fyEl.value = fy;
+                if (ivEl) ivEl.value = iv;
+                if (onChange) onChange();
+            });
+        }
+    }
+
     // ── Live preview (shared renderer) ───────────────────────────────────────
-    function renderPreview(loan_amount, interest, term_years, points, net_credits, net_fees, prop_tax, hoa, insurance) {
+    // armCtx (optional) = { loan_type, arm } — when loan_type === 'arm',
+    // the ARM scenario section of the preview panel is shown; otherwise hidden.
+    function renderPreview(loan_amount, interest, term_years, points, net_credits, net_fees, prop_tax, hoa, insurance, armCtx) {
         var pi           = computePI(loan_amount, interest, term_years);
         var monthlyTotal = pi + prop_tax + hoa + (insurance / 12);
         var closing      = (points / 100 * loan_amount) + net_fees - net_credits;
@@ -618,11 +1002,20 @@
         setPreviewVal('preview_1yr',     show, monthlyTotal * 12);
         setPreviewVal('preview_3yr',     show, monthlyTotal * 36);
         setPreviewVal('preview_5yr',     show, monthlyTotal * 60);
+
+        renderArmPreview({
+            loan_type:   armCtx && armCtx.loan_type === 'arm' ? 'arm' : 'fixed',
+            arm:         armCtx ? armCtx.arm : null,
+            loan_amount: loan_amount,
+            interest:    interest,
+            term_years:  term_years
+        });
     }
 
     function updatePreview() {
         var f = readFormInputs();
-        renderPreview(f.loan_amount, f.interest, f.term_years, f.points, f.net_credits, f.net_fees, f.prop_tax, f.hoa, f.insurance);
+        renderPreview(f.loan_amount, f.interest, f.term_years, f.points, f.net_credits, f.net_fees, f.prop_tax, f.hoa, f.insurance,
+                      { loan_type: f.loan_type, arm: f.arm });
     }
 
     function updateEditPreview() {
@@ -635,15 +1028,23 @@
             parseFloat(document.getElementById('edit_net_fees').value.replace(/,/g, ''))    || 0,
             parseFloat(document.getElementById('edit_prop_tax').value.replace(/,/g, ''))    || 0,
             parseFloat(document.getElementById('edit_hoa').value.replace(/,/g, ''))         || 0,
-            parseFloat(document.getElementById('edit_insurance').value.replace(/,/g, ''))   || 0
+            parseFloat(document.getElementById('edit_insurance').value.replace(/,/g, ''))   || 0,
+            { loan_type: readLoanType('edit_'), arm: readArmInputs('edit_') }
         );
     }
 
-    document.querySelectorAll('#loan_amount, #term_years, #interest_rate, #points, #net_credits, #net_fees, #prop_tax, #hoa, #insurance')
+    document.querySelectorAll('#loan_amount, #term_years, #interest_rate, #points, #net_credits, #net_fees, #prop_tax, #hoa, #insurance, #arm_fixed_years, #arm_interval, #arm_margin, #arm_cap_initial, #arm_cap_periodic, #arm_cap_lifetime')
         .forEach(function(el) { el.addEventListener('input', updatePreview); });
 
-    document.querySelectorAll('#edit_loan_amount, #edit_term_years, #edit_interest, #edit_points, #edit_net_credits, #edit_net_fees, #edit_prop_tax, #edit_hoa, #edit_insurance')
+    document.querySelectorAll('#edit_loan_amount, #edit_term_years, #edit_interest, #edit_points, #edit_net_credits, #edit_net_fees, #edit_prop_tax, #edit_hoa, #edit_insurance, #edit_arm_fixed_years, #edit_arm_interval, #edit_arm_margin, #edit_arm_cap_initial, #edit_arm_cap_periodic, #edit_arm_cap_lifetime')
         .forEach(function(el) { el.addEventListener('input', updateEditPreview); });
+
+    // Wire Loan Type radios + ARM product pickers for all four forms.
+    // Mobile add modal has no live preview, so no onChange callback is needed.
+    attachArmToggle('',      updatePreview);
+    attachArmToggle('mob_');
+    attachArmToggle('edit_', updateEditPreview);
+    attachArmToggle('pdf_',  updatePdfPreview);
 
     document.getElementById('clear-form-btn').addEventListener('click', function() {
         document.getElementById('name').value        = '';
@@ -658,8 +1059,27 @@
         document.getElementById('prop_tax').value    = '';
         document.getElementById('hoa').value         = '';
         document.getElementById('insurance').value   = '';
+        // Reset loan type to Fixed and clear ARM details
+        setLoanType('', 'fixed');
+        clearArmInputs('');
         updatePreview();
     });
+
+    // Reset ARM fields back to placeholders (clears decimal-input digit buffers too)
+    function clearArmInputs(prefix) {
+        var get = function(id) { return document.getElementById(prefix + id); };
+        if (get('arm_product')) get('arm_product').value = '7/6';
+        showArmCustomRow(prefix, false);
+        if (get('arm_fixed_years')) get('arm_fixed_years').value = '7';
+        if (get('arm_interval'))    get('arm_interval').value    = '6';
+        ['arm_margin', 'arm_cap_initial', 'arm_cap_periodic', 'arm_cap_lifetime']
+            .forEach(function(id) {
+                var el = get(id);
+                if (!el) return;
+                el.value = '';
+                el.dataset.digits = '';
+            });
+    }
 
     // ── localStorage ─────────────────────────────────────────────────────────
     // STORAGE_KEY / loadLoans defined in mortgage-common.js
@@ -669,6 +1089,17 @@
 
     // ── Table sort state ──────────────────────────────────────────────────────
     var sortState = { col: null, dir: 1 };
+    // Returns { min, max } of P&I across all ARM scenarios; equal to loan.pi for FRM.
+    function getLoanPiRange(loan) {
+        if (loan.loan_type !== 'arm' || !loan.arm) {
+            return { min: loan.pi, max: loan.pi };
+        }
+        if (typeof loan.pi_min === 'number' && typeof loan.pi_max === 'number') {
+            return { min: loan.pi_min, max: loan.pi_max };
+        }
+        var s = computeLoanScenarioStats(loan);
+        return { min: s.minPi, max: s.maxPi };
+    }
 
     // ── Table rendering ───────────────────────────────────────────────────────
     function renderLoans() {
@@ -694,14 +1125,35 @@
         }
 
         loans.forEach(function(loan) {
+            var isArm = loan.loan_type === 'arm' && loan.arm;
+            var armBadge = isArm
+                ? ' <br><span class="badge badge-xs badge-outline align-middle font-normal text-base-content/60">' + escHtml(armProductLabel(loan).replace(/^ARM /, '') + ' ARM') + '</span>'
+                : '';
+
+            var displayPi = loan.pi;
+            var displayMonthly = loan.monthly_total;
+
+            var rangeHint = '';
+            var totalRangeHint = '';
+            if (isArm) {
+                var range = getLoanPiRange(loan);
+                if (range.max > range.min + 1) {
+                    rangeHint = '<div class="text-xs text-base-content/40 font-normal mt-0.5" title="Lowest \u2013 highest P&amp;I across worst/flat/best scenarios over the loan life">\u2195 ' +
+                                fmtCurrency(range.min) + '\u2013' + fmtCurrency(range.max) + '</div>';
+                    var nonPi = (loan.monthly_total || 0) - (loan.pi || 0);
+                    totalRangeHint = '<div class="text-xs text-base-content/40 font-normal mt-0.5" title="Lowest \u2013 highest monthly total across worst/flat/best scenarios over the loan life">\u2195 ' +
+                                fmtCurrency(range.min + nonPi) + '\u2013' + fmtCurrency(range.max + nonPi) + '</div>';
+                }
+            }
+
             var tr = document.createElement('tr');
             tr.innerHTML =
-                '<td class="p-2 font-medium whitespace-nowrap">'                        + escHtml(loan.name)                            + '</td>' +
+                '<td class="p-2 font-medium whitespace-nowrap">'                        + escHtml(loan.name) + armBadge                + '</td>' +
                 '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.loan_amount)                 + '</td>' +
                 '<td class="p-2 text-right tabular-nums">'                            + loan.interest.toFixed(3)                      + '%</td>' +
                 '<td class="p-2 text-right tabular-nums">'                            + loan.term_years                               + ' yr</td>' +
-                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.pi)                          + '</td>' +
-                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.monthly_total)               + '</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(displayPi) + rangeHint            + '</td>' +
+                '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(displayMonthly) + totalRangeHint  + '</td>' +
                 '<td class="p-2 text-right tabular-nums">'                            + fmtCurrency(loan.closing)                     + '</td>' +
                 '<td class="p-2 flex gap-1">' +
                     '<button class="btn btn-primary btn-xs" data-edit-id="' + loan.id + '">Edit</button>' +
@@ -752,6 +1204,37 @@
     });
 
     // ── Add loan ──────────────────────────────────────────────────────────────
+    // Build a loan object from form inputs. Always includes loan_type;
+    // arm sub-object is included for both fixed and arm types (so toggling
+    // a saved loan back to ARM doesn't lose previously-entered ARM details).
+    function buildLoanFromInputs(f, id) {
+        var pi           = computePI(f.loan_amount, f.interest, f.term_years);
+        var monthlyTotal = pi + f.prop_tax + f.hoa + (f.insurance / 12);
+        var closing      = (f.points / 100 * f.loan_amount) + f.net_fees - f.net_credits;
+        var loan = {
+            id:            id != null ? id : Date.now(),
+            name:          f.name,
+            loan_amount:   f.loan_amount,
+            term_years:    f.term_years,
+            interest:      f.interest,
+            points:        f.points,
+            net_credits:   f.net_credits,
+            net_fees:      f.net_fees,
+            prop_tax:      f.prop_tax,
+            hoa:           f.hoa,
+            insurance:     f.insurance,
+            pi:            pi,
+            monthly_total: monthlyTotal,
+            closing:       closing,
+            loan_type:     f.loan_type || 'fixed',
+            arm:           f.arm || null,
+        };
+        var stats = computeLoanScenarioStats(loan);
+        loan.pi_min = stats.minPi;
+        loan.pi_max = stats.maxPi;
+        return loan;
+    }
+
     function addLoan() {
         var f = readFormInputs();
         if (f.name.length === 0) {
@@ -766,51 +1249,23 @@
         }
 
         var loans = loadLoans();
-        var pi           = computePI(f.loan_amount, f.interest, f.term_years);
-        var monthlyTotal = pi + f.prop_tax + f.hoa + (f.insurance / 12);
-        var closing      = (f.points / 100 * f.loan_amount) + f.net_fees - f.net_credits;
-
-        loans.push({
-            id:            Date.now(),
-            name:          f.name || ('Loan ' + (loans.length + 1)),
-            loan_amount:   f.loan_amount,
-            term_years:    f.term_years,
-            interest:      f.interest,
-            points:        f.points,
-            net_credits:   f.net_credits,
-            net_fees:      f.net_fees,
-            prop_tax:      f.prop_tax,
-            hoa:           f.hoa,
-            insurance:     f.insurance,
-            pi:            pi,
-            monthly_total: monthlyTotal,
-            closing:       closing,
-        });
+        if (!f.name) f.name = 'Loan ' + (loans.length + 1);
+        loans.push(buildLoanFromInputs(f));
         saveLoans(loans);
         renderLoans();
-        showToast('\u2713 \u201c' + (f.name || 'Loan') + '\u201d added');
+        showToast('\u2713 \u201c' + f.name + '\u201d added');
 
         ['name','loan_amount','net_credits','net_fees','prop_tax','hoa','insurance']
             .forEach(function(id) { document.getElementById(id).value = ''; });
         setDecimalInput(document.getElementById('interest_rate'), 0);
         setDecimalInput(document.getElementById('points'), 0);
         document.getElementById('term_years').value = 30;
+        setLoanType('', 'fixed');
+        clearArmInputs('');
         updatePreview();
     }
 
-    // ── Toast ─────────────────────────────────────────────────────────────────
-    function showToast(message, type) {
-        var alertClass = type === 'error' ? 'alert-error' : 'alert-success';
-        var wrap = document.createElement('div');
-        wrap.className = 'toast toast-top toast-end z-[999]';
-        wrap.innerHTML = '<div class="alert ' + alertClass + ' text-sm py-2 px-4">' + escHtml(message) + '</div>';
-        document.body.appendChild(wrap);
-        setTimeout(function() {
-            wrap.style.transition = 'opacity 0.4s';
-            wrap.style.opacity = '0';
-            setTimeout(function() { wrap.remove(); }, 400);
-        }, 2600);
-    }
+    // showToast defined in mortgage-common.js
 
     // ── Delete loan ───────────────────────────────────────────────────────────
     var _pendingDeleteId = null;
@@ -848,6 +1303,11 @@
         document.getElementById('edit_hoa').value          = fmtDollarField(loan.hoa);
         document.getElementById('edit_insurance').value    = fmtDollarField(loan.insurance);
 
+        // Loan type + ARM details. arm sub-object is preserved across
+        // FRM ↔ ARM toggles so users don't lose entered ARM values.
+        setLoanType('edit_', loan.loan_type || 'fixed');
+        setArmInputs('edit_', loan.arm || defaultArm());
+
         var modal   = document.getElementById('edit-loan-modal');
         var panel   = document.getElementById('preview-panel');
         var backdrop = modal.querySelector('.modal-backdrop');
@@ -874,24 +1334,28 @@
         var hoa         = parseFloat(document.getElementById('edit_hoa').value.replace(/,/g, ''))          || 0;
         var insurance   = parseFloat(document.getElementById('edit_insurance').value.replace(/,/g, ''))    || 0;
         var name        = document.getElementById('edit_name').value.trim();
+        var loan_type   = readLoanType('edit_');
+        var arm         = readArmInputs('edit_');
 
         if (loan_amount <= 0) {
             document.getElementById('edit_loan_amount').focus();
             return;
         }
 
-        var pi           = computePI(loan_amount, interest, term_years);
-        var monthly_total = pi + prop_tax + hoa + (insurance / 12);
-        var closing      = (points / 100 * loan_amount) + net_fees - net_credits;
-
         var loans = loadLoans().map(function(l) {
             if (l.id !== id) return l;
-            return {
-                id: l.id, name: name || l.name,
-                loan_amount, term_years, interest, points,
-                net_credits, net_fees, prop_tax, hoa, insurance,
-                pi, monthly_total, closing,
+            // Preserve any previously-stored arm sub-object as a fallback
+            // (the form always provides one but better safe than sorry).
+            var f = {
+                name: name || l.name,
+                loan_amount: loan_amount, term_years: term_years,
+                interest: interest, points: points,
+                net_credits: net_credits, net_fees: net_fees,
+                prop_tax: prop_tax, hoa: hoa, insurance: insurance,
+                loan_type: loan_type,
+                arm: arm || l.arm || null,
             };
+            return buildLoanFromInputs(f, l.id);
         });
         saveLoans(loans);
         renderLoans();
@@ -1008,11 +1472,12 @@
             parseFloat(document.getElementById('pdf_net_fees').value.replace(/,/g, ''))    || 0,
             parseFloat(document.getElementById('pdf_prop_tax').value.replace(/,/g, ''))    || 0,
             parseFloat(document.getElementById('pdf_hoa').value.replace(/,/g, ''))         || 0,
-            parseFloat(document.getElementById('pdf_insurance').value.replace(/,/g, ''))   || 0
+            parseFloat(document.getElementById('pdf_insurance').value.replace(/,/g, ''))   || 0,
+            { loan_type: readLoanType('pdf_'), arm: readArmInputs('pdf_') }
         );
     }
 
-    document.querySelectorAll('#pdf_loan_amount, #pdf_term_years, #pdf_interest, #pdf_points, #pdf_net_credits, #pdf_net_fees, #pdf_prop_tax, #pdf_hoa, #pdf_insurance')
+    document.querySelectorAll('#pdf_loan_amount, #pdf_term_years, #pdf_interest, #pdf_points, #pdf_net_credits, #pdf_net_fees, #pdf_prop_tax, #pdf_hoa, #pdf_insurance, #pdf_arm_fixed_years, #pdf_arm_interval, #pdf_arm_margin, #pdf_arm_cap_initial, #pdf_arm_cap_periodic, #pdf_arm_cap_lifetime')
         .forEach(function(el) { el.addEventListener('input', updatePdfPreview); });
 
     function openPdfImportModal(data, filename) {
@@ -1026,6 +1491,37 @@
         document.getElementById('pdf_prop_tax').value    = data.prop_tax      ? fmtDollarField(data.prop_tax)                            : '';
         document.getElementById('pdf_hoa').value         = data.hoa           ? fmtDollarField(data.hoa)                                 : '';
         document.getElementById('pdf_insurance').value   = data.insurance     ? fmtDollarField(data.insurance)                           : '';
+
+        // Populate loan type and ARM fields from parsed PDF data.
+        // Fields the parser couldn't find are left empty so the user must fill them in.
+        if (data.loan_type === 'arm') {
+            setLoanType('pdf_', 'arm');
+            var pfx = 'pdf_';
+            var getEl = function(id) { return document.getElementById(pfx + id); };
+            var fy = data.arm_fixed_years || 7;
+            var im = data.arm_interval_months || 6;
+            var productLabel = 'custom';
+            for (var i = 0; i < ARM_PRODUCTS.length; i++) {
+                if (ARM_PRODUCTS[i].fixed_period_years === fy &&
+                    ARM_PRODUCTS[i].adjustment_interval_months === im) {
+                    productLabel = ARM_PRODUCTS[i].label;
+                    break;
+                }
+            }
+            if (getEl('arm_product')) getEl('arm_product').value = productLabel;
+            showArmCustomRow(pfx, productLabel === 'custom');
+            if (productLabel === 'custom') {
+                if (getEl('arm_fixed_years')) getEl('arm_fixed_years').value = fy;
+                if (getEl('arm_interval'))    getEl('arm_interval').value    = im;
+            }
+            if (data.arm_margin != null)      setDecimalInput(getEl('arm_margin'), data.arm_margin);
+            if (data.arm_cap_initial  != null && getEl('arm_cap_initial'))  getEl('arm_cap_initial').value  = Math.round(data.arm_cap_initial);
+            if (data.arm_cap_periodic != null && getEl('arm_cap_periodic')) getEl('arm_cap_periodic').value = Math.round(data.arm_cap_periodic);
+            if (data.arm_cap_lifetime != null && getEl('arm_cap_lifetime')) getEl('arm_cap_lifetime').value = Math.round(data.arm_cap_lifetime);
+        } else {
+            setLoanType('pdf_', 'fixed');
+            clearArmInputs('pdf_');
+        }
 
         var modal    = document.getElementById('pdf-import-modal');
         var panel    = document.getElementById('preview-panel');
@@ -1060,6 +1556,8 @@
         var hoa         = parseFloat(document.getElementById('pdf_hoa').value.replace(/,/g, ''))         || 0;
         var insurance   = parseFloat(document.getElementById('pdf_insurance').value.replace(/,/g, ''))   || 0;
         var name        = document.getElementById('pdf_name').value.trim();
+        var loan_type   = readLoanType('pdf_');
+        var arm         = readArmInputs('pdf_');
 
         if (loan_amount <= 0) {
             document.getElementById('pdf_loan_amount').focus();
@@ -1068,20 +1566,18 @@
         }
 
         var loans = loadLoans();
-        var pi           = computePI(loan_amount, interest, term_years);
-        var monthly_total = pi + prop_tax + hoa + (insurance / 12);
-        var closing      = (points / 100 * loan_amount) + net_fees - net_credits;
-
-        loans.push({
-            id: Date.now(),
-            name: name || ('Loan ' + (loans.length + 1)),
-            loan_amount, term_years, interest, points,
-            net_credits, net_fees, prop_tax, hoa, insurance,
-            pi, monthly_total, closing,
-        });
+        if (!name) name = 'Loan ' + (loans.length + 1);
+        loans.push(buildLoanFromInputs({
+            name: name,
+            loan_amount: loan_amount, term_years: term_years,
+            interest: interest, points: points,
+            net_credits: net_credits, net_fees: net_fees,
+            prop_tax: prop_tax, hoa: hoa, insurance: insurance,
+            loan_type: loan_type, arm: arm
+        }));
         saveLoans(loans);
         renderLoans();
-        showToast('\u2713 \u201c' + (name || 'Loan') + '\u201d added from PDF');
+        showToast('\u2713 \u201c' + name + '\u201d added from PDF');
         document.getElementById('pdf-import-modal').close();
     }
 
@@ -1180,6 +1676,8 @@
             prop_tax:    parseFloat(document.getElementById('mob_prop_tax').value.replace(/,/g, ''))      || 0,
             hoa:         parseFloat(document.getElementById('mob_hoa').value.replace(/,/g, ''))           || 0,
             insurance:   parseFloat(document.getElementById('mob_insurance').value.replace(/,/g, ''))     || 0,
+            loan_type:   readLoanType('mob_'),
+            arm:         readArmInputs('mob_'),
         };
     }
 
@@ -1194,6 +1692,8 @@
         document.getElementById('mob_prop_tax').value    = '';
         document.getElementById('mob_hoa').value         = '';
         document.getElementById('mob_insurance').value   = '';
+        setLoanType('mob_', 'fixed');
+        clearArmInputs('mob_');
     }
 
     function addLoanMobile() {
@@ -1208,26 +1708,8 @@
             showToast('Loan amount must be positive', 'error');
             return;
         }
-        var loans        = loadLoans();
-        var pi           = computePI(f.loan_amount, f.interest, f.term_years);
-        var monthlyTotal = pi + f.prop_tax + f.hoa + (f.insurance / 12);
-        var closing      = (f.points / 100 * f.loan_amount) + f.net_fees - f.net_credits;
-        loans.push({
-            id:            Date.now(),
-            name:          f.name,
-            loan_amount:   f.loan_amount,
-            term_years:    f.term_years,
-            interest:      f.interest,
-            points:        f.points,
-            net_credits:   f.net_credits,
-            net_fees:      f.net_fees,
-            prop_tax:      f.prop_tax,
-            hoa:           f.hoa,
-            insurance:     f.insurance,
-            pi:            pi,
-            monthly_total: monthlyTotal,
-            closing:       closing,
-        });
+        var loans = loadLoans();
+        loans.push(buildLoanFromInputs(f));
         saveLoans(loans);
         renderLoans();
         showToast('\u2713 \u201c' + f.name + '\u201d added');

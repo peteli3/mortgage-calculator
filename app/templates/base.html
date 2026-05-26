@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{% block title %}Mortgage Calculator{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/favicon.ico') }}">
     <link href="{{ url_for('static', path='/output.css') }}" rel="stylesheet">
@@ -20,9 +20,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </label>
-                    <h1 class="text-lg md:text-xl font-bold whitespace-nowrap flex-1">Mortgage Calculator</h1>
+                    <h1 class="text-lg md:text-xl font-bold whitespace-nowrap">Mortgage Calculator</h1>
                     <!-- Inline nav: desktop only -->
-                    <nav class="hidden md:flex items-center gap-1">
+                    <nav class="hidden md:flex items-center gap-1 mr-auto ml-2">
                         <a href="/"
                            class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
                             Home

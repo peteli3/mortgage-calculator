@@ -27,6 +27,35 @@ def _find_dollar_after(line: str, peek: str) -> int | None:
     return _parse_dollar(m.group(1)) if m else None
 
 
+def _parse_arm_product(text: str, result: dict) -> None:
+    """Try to extract ARM fixed period and adjustment interval from text.
+
+    Handles common CFPB Loan Estimate formats:
+      "7-Year/6-Month ARM", "7 Year / 6 Month ARM"
+      "7/6 ARM", "5/1 ARM"
+      "7-Year ARM"  (annual adjustments implied)
+    """
+    # "7-Year/6-Month ARM" or "7 Year / 6 Month"
+    m = re.search(r"(\d+)[- ]?[Yy]ear[s]?\s*/\s*(\d+)[- ]?[Mm]onth", text, re.I)
+    if m:
+        result["arm_fixed_years"] = int(m.group(1))
+        result["arm_interval_months"] = int(m.group(2))
+        return
+    # "7/6" or "5/1" bare-number notation
+    m2 = re.search(r"\b(\d+)\s*/\s*(\d+)\b", text)
+    if m2:
+        fy = int(m2.group(1))
+        iv = int(m2.group(2))
+        result["arm_fixed_years"] = fy
+        result["arm_interval_months"] = iv if iv > 1 else 12
+        return
+    # "7-Year ARM" — annual adjustments implied
+    m3 = re.search(r"(\d+)[- ]?[Yy]ear", text, re.I)
+    if m3:
+        result["arm_fixed_years"] = int(m3.group(1))
+        result["arm_interval_months"] = 12
+
+
 def _find_dollar_right_of(pattern: str, line: str) -> int | None:
     """Return the dollar amount that appears to the RIGHT of `pattern` in `line`.
 
@@ -54,6 +83,7 @@ def parse_loan_estimate_text(text: str) -> dict:
 
     result: dict = {
         "name": "",
+        "loan_type": "fixed",
         "loan_amount": 0,
         "interest_rate": 0.0,
         "term_years": 30,
@@ -63,6 +93,13 @@ def parse_loan_estimate_text(text: str) -> dict:
         "prop_tax": 0,
         "hoa": 0,
         "insurance": 0,
+        # ARM-specific fields (None = not found; frontend shows empty placeholder)
+        "arm_fixed_years": None,
+        "arm_interval_months": None,
+        "arm_margin": None,
+        "arm_cap_initial": None,
+        "arm_cap_periodic": None,
+        "arm_cap_lifetime": None,
     }
 
     # Accumulate credits from multiple labeled lines before writing net_credits.
@@ -71,6 +108,64 @@ def parse_loan_estimate_text(text: str) -> dict:
 
     for i, line in enumerate(lines):
         peek = lines[i + 1] if i + 1 < len(lines) else ""
+
+        # ── Product / Loan Type (ARM detection) ───────────────────────────
+        # CFPB page-1 "Product" field. Common values:
+        #   "7-Year/6-Month ARM", "5-Year ARM", "Fixed Rate", etc.
+        # We also catch bare "Adjustable Rate" / "ARM" mentions elsewhere.
+        if re.search(r"\bProduct\b", line, re.I):
+            combined = line + " " + peek
+            if re.search(r"Adjustable\s+Rate|\bARM\b", combined, re.I):
+                result["loan_type"] = "arm"
+                if result["arm_fixed_years"] is None:
+                    _parse_arm_product(combined, result)
+        elif (result["loan_type"] == "fixed"
+              and re.search(r"Adjustable\s+Rate|\bARM\b", line, re.I)
+              and not re.search(r"Annual\s+Percentage|APR\b", line, re.I)):
+            result["loan_type"] = "arm"
+            if result["arm_fixed_years"] is None:
+                _parse_arm_product(line + " " + peek, result)
+
+        # ── ARM Margin ─────────────────────────────────────────────────────
+        # CFPB AIR table: "Index + Margin = Initial Interest Rate"
+        # Typical line: "SOFR   +   2.750%  =  6.250%"  (next line after Margin header)
+        # Or: "Margin  2.750%"
+        if re.search(r"\bMargin\b", line, re.I) and result["arm_margin"] is None:
+            if not re.search(r"Gross\s+Margin|Profit\s+Margin|error\s+margin", line, re.I):
+                m_mar = re.search(r"([\d.]+)\s*%", line + " " + peek)
+                if m_mar:
+                    result["arm_margin"] = float(m_mar.group(1))
+
+        # ── ARM Interest Rate Caps ─────────────────────────────────────────
+        # Inline N/N/N format on a line with cap/limit keywords.
+        if result["arm_cap_initial"] is None and re.search(r"\bCaps?\b|\bLimits?\b", line, re.I):
+            m_cap = re.search(r"(\d+)\s*/\s*(\d+)\s*/\s*(\d+)", line + " " + peek)
+            if m_cap:
+                result["arm_cap_initial"] = float(m_cap.group(1))
+                result["arm_cap_periodic"] = float(m_cap.group(2))
+                result["arm_cap_lifetime"] = float(m_cap.group(3))
+
+        # Individual CFPB AIR-table cap labels
+        if result["arm_cap_initial"] is None and re.search(
+            r"\bFirst\s+Change\b|\bInitial\s+(?:Cap|Limit|Change)\b", line, re.I
+        ):
+            m_fc = re.search(r"([\d.]+)\s*%", line + " " + peek)
+            if m_fc:
+                result["arm_cap_initial"] = float(m_fc.group(1))
+
+        if result["arm_cap_periodic"] is None and re.search(
+            r"\bSubsequent\b|\bPeriodic\s+(?:Cap|Limit|Change)\b", line, re.I
+        ):
+            m_sc = re.search(r"([\d.]+)\s*%", line + " " + peek)
+            if m_sc:
+                result["arm_cap_periodic"] = float(m_sc.group(1))
+
+        if result["arm_cap_lifetime"] is None and re.search(
+            r"\bLifetime\b|\bLife\s+of\s+Loan\b", line, re.I
+        ):
+            m_lc = re.search(r"([\d.]+)\s*%", line + " " + peek)
+            if m_lc:
+                result["arm_cap_lifetime"] = float(m_lc.group(1))
 
         # ── Loan Amount ────────────────────────────────────────────────────
         if re.search(r"\bLoan\s+Amount\b", line, re.I) and not result["loan_amount"]:
@@ -153,6 +248,41 @@ def parse_loan_estimate_text(text: str) -> dict:
 
     # Net credits = sum of all credit sources found; 0 if none were labeled.
     result["net_credits"] = _lender_credits + _seller_credits
+
+    # ── Post-loop: ARM cap fallback ────────────────────────────────────────
+    # Some lenders (e.g. Chase) describe caps in a paragraph rather than a
+    # tabular layout.  Scan the full text if we still haven't found caps.
+    #
+    # Handles patterns like:
+    #   "max 5 first increase ... subsequent 1 / lifetime 5"  → 5/1/5
+    #   "First Change Cap: 2%  Subsequent: 2%  Lifetime: 5%"
+    if result["loan_type"] == "arm" and result["arm_cap_initial"] is None:
+        # Try N/N/N anywhere near a cap/limit/change keyword
+        m_cap3 = re.search(
+            r"(?:cap|caps|limit|change|adjust)[^\n]{0,120}?(\d+)\s*/\s*(\d+)\s*/\s*(\d+)",
+            text, re.I,
+        )
+        if m_cap3:
+            result["arm_cap_initial"] = float(m_cap3.group(1))
+            result["arm_cap_periodic"] = float(m_cap3.group(2))
+            result["arm_cap_lifetime"] = float(m_cap3.group(3))
+        else:
+            # Keyword-anchored individual values across the full text
+            m_init = re.search(
+                r"\bfirst\s+(?:change|increase|adjustment)[^0-9\n]{0,40}([\d.]+)", text, re.I
+            )
+            m_per = re.search(
+                r"\b(?:subsequent|periodic)[^0-9\n]{0,40}([\d.]+)", text, re.I
+            )
+            m_life = re.search(
+                r"\b(?:lifetime|life\s*of\s*(?:the\s*)?loan)[^0-9\n]{0,40}([\d.]+)", text, re.I
+            )
+            if m_init:
+                result["arm_cap_initial"] = float(m_init.group(1))
+            if m_per:
+                result["arm_cap_periodic"] = float(m_per.group(1))
+            if m_life:
+                result["arm_cap_lifetime"] = float(m_life.group(1))
 
     return result
 

@@ -35,62 +35,84 @@
 
             {# Header: loan name + summary stats #}
             <div class="px-6 py-3 border-b border-base-300 shrink-0">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <h2 id="graph-loan-name" class="text-xl font-bold tracking-wide text-base-content/80 min-w-0 truncate"></h2>
+                    <span id="graph-arm-badge" class="hidden badge badge-sm badge-outline text-base-content/60"></span>
                     <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
                             onclick="document.getElementById('select-loan-modal').showModal()">
                         Change
                     </button>
+                    {# ARM scenario control. Hidden when a Fixed loan is selected. #}
+                    <div id="graph-scenario-control" class="hidden ml-auto flex items-center gap-1 text-xs">
+                        <span class="text-base-content/40 uppercase tracking-wide font-semibold mr-1">Scenario</span>
+                        <div class="join" role="tablist">
+                            <button type="button" class="join-item btn btn-xs" data-scenario="worst">Worst</button>
+                            <button type="button" class="join-item btn btn-xs" data-scenario="flat">Flat</button>
+                            <button type="button" class="join-item btn btn-xs" data-scenario="best">Best</button>
+                            <button type="button" class="join-item btn btn-xs btn-active" data-scenario="compare">Compare</button>
+                        </div>
+                    </div>
                 </div>
-                <div id="graph-summary" class="mt-2 hidden">
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-1.5">
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Loan Amount</span>
-                            <span id="graph-loan-amount" class="font-medium text-base-content/80 tabular-nums"></span>
+                <div id="graph-summary" class="mt-2 hidden flex flex-col gap-y-2">
+                    <div class="flex flex-wrap items-start gap-x-4 gap-y-2">
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Loan Amount</span>
+                            <span id="graph-loan-amount" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Interest Rate</span>
-                            <span id="graph-interest-rate" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50" id="graph-interest-rate-label">Interest Rate</span>
+                            <span id="graph-interest-rate" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Total Interest</span>
-                            <span id="graph-total-interest" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <div class="flex flex-wrap items-start gap-x-4 gap-y-2 basis-full lg:basis-auto">
+                            <span class="flex shrink-0 flex-col gap-0.5">
+                                <span class="text-xs text-base-content/50">Total Interest</span>
+                                <span id="graph-total-interest" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
+                            </span>
+                            <span class="flex shrink-0 flex-col gap-0.5">
+                                <span class="text-xs text-base-content/50">Closing Costs</span>
+                                <span id="graph-closing-costs" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
+                            </span>
+                            <span class="flex shrink-0 flex-col gap-0.5">
+                                <span class="text-xs text-base-content/50">Total Cost of Loan</span>
+                                <span id="graph-cost-of-loan" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-start gap-x-4 gap-y-2">
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">P&I / mo</span>
+                            <span id="graph-monthly-pi" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Closing Costs</span>
-                            <span id="graph-closing-costs" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Remaining Payments</span>
+                            <span id="graph-remaining-payments" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Total Cost</span>
-                            <span id="graph-cost-of-loan" class="font-medium text-base-content/80 tabular-nums"></span>
-                        </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Payoff Date</span>
-                            <span id="graph-payoff-date" class="font-medium text-base-content/80"></span>
-                        </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Remaining Payments</span>
-                            <span id="graph-remaining-payments" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Payoff Date</span>
+                            <span id="graph-payoff-date" class="text-sm font-medium text-base-content/80"></span>
                         </span>
                     </div>
                 </div>
             </div>
 
-            {# SVG chart area — fills remaining vertical space #}
-            <div id="graph-chart-container" class="aspect-video lg:aspect-auto flex-1 min-h-0 relative" style="min-height:220px">
+            {# Chart + legend + settings scroll together when taller than viewport #}
+            <div id="graph-scroll-area" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
+            <div id="graph-chart-container" class="aspect-video lg:aspect-auto shrink-0 relative w-full" style="min-height:220px;height:min(50vh,480px)">
                 <svg id="amort-chart" style="position:absolute;inset:0;width:100%;height:100%;display:block"></svg>
             </div>
 
-            {# Bottom row: interactive legend (left) + additional payments (right) — fixed h-40 on desktop #}
-            <div class="flex flex-col lg:flex-row items-stretch border-t border-base-300 shrink-0 lg:h-40 overflow-y-auto overflow-x-hidden">
+            {# Bottom row: interactive legend (left) + graph settings / additional payments (right) #}
+            <div class="flex flex-col lg:flex-row items-stretch border-t border-base-300 shrink-0">
 
                 {# Legend #}
-                <div class="px-5 py-3 border-b lg:border-b-0 lg:border-r border-base-300 shrink-0 flex flex-col justify-center lg:min-w-[280px]">
+                <div class="px-5 py-3 border-b lg:border-b-0 lg:border-r border-base-300 shrink-0 flex flex-col lg:min-w-[280px]">
                     <div class="mb-2.5">
                         <div class="text-sm text-base-content/50">At cursor position: <span id="legend-date" class="text-base-content/60 font-medium">—</span></div>
                         <span id="legend-pin-badge" class="hidden text-xs text-base-content/40">(pinned — click to release)</span>
                     </div>
-                    <div class="space-y-2">
+                    {# Single-scenario legend (Interest / Principal / Balance).
+                       Shown for Fixed loans and for single ARM scenarios. #}
+                    <div id="legend-single" class="space-y-2">
                         <div class="flex items-center gap-3">
                             <svg width="13" height="13" class="shrink-0"><circle cx="6.5" cy="6.5" r="5.5" fill="#f87171"/></svg>
                             <span class="text-sm text-base-content/70 flex-1">Interest Paid</span>
@@ -107,10 +129,18 @@
                             <span id="legend-balance" class="text-sm font-semibold tabular-nums text-base-content/90">—</span>
                         </div>
                     </div>
+                    {# Multi-scenario legend (Compare mode): scenario × metric rows. #}
+                    <div id="legend-multi" class="hidden flex flex-col min-h-0">
+                        <div id="legend-multi-active" class="space-y-1"></div>
+                        <div id="legend-multi-hidden-wrap" class="hidden mt-3 pt-2 border-t border-base-300/50">
+                            <div class="text-xs uppercase tracking-wide text-base-content/40 mb-1.5">Hidden</div>
+                            <div id="legend-multi-hidden" class="space-y-1"></div>
+                        </div>
+                    </div>
                 </div>
 
                 {# Graph settings + Additional payments (graph tab) #}
-                <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+                <div class="flex-1 flex flex-col min-w-0">
 
                     {# Graph settings — collapsible, shares SCHEDULE_SETTINGS_KEY #}
                     <div class="border-b border-base-300">
@@ -158,51 +188,72 @@
                 </div>
 
             </div>
+            </div>{# /graph-scroll-area #}
         </div>
 
         {# Schedule panel #}
         <div id="panel-schedule" class="bg-base-200 rounded-b flex-1 overflow-y-auto flex flex-col min-h-0 hidden">
             <div class="px-6 pt-3 pb-3 border-b border-base-300">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <h2 id="schedule-loan-name" class="text-xl font-bold tracking-wide text-base-content/80 min-w-0 truncate"></h2>
+                    <span id="schedule-arm-badge" class="hidden badge badge-sm badge-outline text-base-content/60"></span>
                     <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
                             onclick="document.getElementById('select-loan-modal').showModal()">
                         Change
                     </button>
+                    {# ARM scenario tabs. Hidden when a Fixed loan is selected.
+                       Switching scenarios rewrites cell text in-place to
+                       preserve which year-groups the user has expanded. #}
+                    <div id="schedule-scenario-control" class="hidden ml-auto flex items-center gap-1 text-xs">
+                        <span class="text-base-content/40 uppercase tracking-wide font-semibold mr-1">Scenario</span>
+                        <div class="join" role="tablist">
+                            <button type="button" class="join-item btn btn-xs btn-active" data-scenario="worst">Worst</button>
+                            <button type="button" class="join-item btn btn-xs" data-scenario="intro_forever">Flat</button>
+                            <button type="button" class="join-item btn btn-xs" data-scenario="best">Best</button>
+                        </div>
+                    </div>
                 </div>
-                <div id="schedule-summary" class="mt-2">
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-1.5">
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Loan Amount</span>
-                            <span id="schedule-loan-amount" class="font-medium text-base-content/80 tabular-nums"></span>
+                <div id="schedule-summary" class="mt-2 flex flex-col gap-y-2">
+                    <div class="flex flex-wrap items-start gap-x-4 gap-y-2">
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Loan Amount</span>
+                            <span id="schedule-loan-amount" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Interest Rate</span>
-                            <span id="schedule-interest-rate" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50" id="schedule-interest-rate-label">Interest Rate</span>
+                            <span id="schedule-interest-rate" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span id="schedule-down-payment-wrap" class="hidden flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Down Payment</span>
-                            <span id="schedule-down-payment" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span id="schedule-down-payment-wrap" class="hidden shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Down Payment</span>
+                            <span id="schedule-down-payment" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Total Interest</span>
-                            <span id="schedule-total-interest" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <div class="flex flex-wrap items-start gap-x-4 gap-y-2 basis-full lg:basis-auto">
+                            <span class="flex shrink-0 flex-col gap-0.5">
+                                <span class="text-xs text-base-content/50">Total Interest</span>
+                                <span id="schedule-total-interest" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
+                            </span>
+                            <span class="flex shrink-0 flex-col gap-0.5">
+                                <span class="text-xs text-base-content/50">Closing Costs</span>
+                                <span id="schedule-closing-costs" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
+                            </span>
+                            <span class="flex shrink-0 flex-col gap-0.5">
+                                <span class="text-xs text-base-content/50">Total Cost of Loan</span>
+                                <span id="schedule-cost-of-loan" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-start gap-x-4 gap-y-2">
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">P&I / mo</span>
+                            <span id="schedule-monthly-pi" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Closing Costs</span>
-                            <span id="schedule-closing-costs" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Remaining Payments</span>
+                            <span id="schedule-remaining-payments" class="text-sm font-medium text-base-content/80 tabular-nums"></span>
                         </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Total Cost</span>
-                            <span id="schedule-cost-of-loan" class="font-medium text-base-content/80 tabular-nums"></span>
-                        </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Payoff Date</span>
-                            <span id="schedule-payoff-date" class="font-medium text-base-content/80"></span>
-                        </span>
-                        <span class="flex flex-col sm:flex-row sm:items-baseline sm:gap-1 text-sm">
-                            <span class="text-xs sm:text-sm text-base-content/50">Remaining Payments</span>
-                            <span id="schedule-remaining-payments" class="font-medium text-base-content/80 tabular-nums"></span>
+                        <span class="flex shrink-0 flex-col gap-0.5">
+                            <span class="text-xs text-base-content/50">Payoff Date</span>
+                            <span id="schedule-payoff-date" class="text-sm font-medium text-base-content/80"></span>
                         </span>
                     </div>
                 </div>
@@ -267,6 +318,8 @@
                         <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
                             <th class="pl-6 pr-3 py-2 text-left font-medium w-8"></th>
                             <th class="px-3 py-2 text-left font-medium">Date</th>
+                            {# Rate column — hidden for Fixed loans (rate never changes) #}
+                            <th class="px-3 py-2 text-right font-medium hidden" data-rate-col>Rate</th>
                             <th class="px-3 py-2 text-right font-medium">Principal</th>
                             <th class="px-3 py-2 text-left font-medium whitespace-nowrap">Σ&nbsp;Principal</th>
                             <th class="px-3 py-2 text-right font-medium">Interest</th>
@@ -276,7 +329,7 @@
                     </thead>
                     <tbody id="schedule-tbody">
                         <tr id="schedule-empty">
-                            <td colspan="7" class="pl-6 pr-6 py-6 text-center text-base-content/40 text-xs">
+                            <td colspan="8" class="pl-6 pr-6 py-6 text-center text-base-content/40 text-xs">
                                 Select a loan to view its amortization schedule.
                             </td>
                         </tr>
@@ -312,15 +365,24 @@
 <script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
 <script src="{{ url_for('static', path='/mortgage-loan-detail.js') }}"></script>
 <script>
-    // STORAGE_KEY / SELECTED_KEY / loadLoans defined in mortgage-common.js
+    // STORAGE_KEY / SELECTED_KEY / loadLoans / ARM_SCENARIOS /
+    // armProductLabel / calculateAmortizationV2 defined in mortgage-common.js
     // fmtPct defined in mortgage-loan-detail.js
     var EXTRA_PAYMENTS_KEY = 'amortization_extra_payments';
     var ACTIVE_TAB_KEY = 'amortization_active_tab';
     var SCHEDULE_SETTINGS_KEY = 'amortization_schedule_settings';
     var SCHED_SETTINGS_OPEN_KEY = 'amortization_schedule_settings_open';
     var GRAPH_SETTINGS_OPEN_KEY = 'amortization_graph_settings_open';
+    // Last-selected scenarios persist independently per tab so switching
+    // between Graph and Schedule doesn't reset the user's choice.
+    var SCHED_SCENARIO_KEY = 'amortization_schedule_scenario';
+    var GRAPH_SCENARIO_KEY = 'amortization_graph_scenario';
     var selectedLoanId = null;
     var amortSortState = { col: null, dir: 1 };
+    var scheduleScenario = localStorage.getItem(SCHED_SCENARIO_KEY) || 'worst';
+    var graphScenario    = localStorage.getItem(GRAPH_SCENARIO_KEY) || 'compare';
+    // Migrate the retired 'indexed_flat' rate path to the surviving 'intro_forever' (Flat).
+    if (scheduleScenario === 'indexed_flat') scheduleScenario = 'intro_forever';
 
     function fmtCurrency(val) {
         if (!val && val !== 0) return '—';
@@ -333,107 +395,17 @@
     // Amortization Calculation Module (reusable for Graph)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Calculate full amortization schedule with optional extra payments.
-     * Returns { schedule: [...], totalInterest, totalPrincipal, payoffDate, payoffMonth }
-     *
-     * Each schedule entry: { month, year, calendarMonth, calendarYear, payment, principal, interest, extra, balance }
-     *
-     * @param {number} principal - Initial loan amount
-     * @param {number} annualRatePct - Annual interest rate as percent (e.g. 6.5 for 6.5%)
-     * @param {number} termYears - Loan term in years
-     * @param {Date} startDate - Loan start date (first payment month)
-     * @param {Array} extraPayments - [{type: 'monthly'|'yearly'|'onetime', amount, startMonth}]
-     */
+    // Thin wrapper over the shared engine in mortgage-common.js. The
+    // 'intro_forever' scenario equals constant-rate amortization, so
+    // Fixed Rate output is byte-identical to the previous implementation.
     function calculateAmortization(principal, annualRatePct, termYears, startDate, extraPayments) {
-        extraPayments = Array.isArray(extraPayments) ? extraPayments : [];
-
-        var schedule = [];
-        var balance = principal;
-        var monthlyRate = annualRatePct / 100 / 12;
-        var totalPayments = termYears * 12;
-
-        // Standard monthly P&I payment
-        var monthlyPayment;
-        if (monthlyRate <= 0) {
-            monthlyPayment = principal / totalPayments;
-        } else {
-            monthlyPayment = principal * monthlyRate * Math.pow(1 + monthlyRate, totalPayments) /
-                            (Math.pow(1 + monthlyRate, totalPayments) - 1);
-        }
-
-        var totalInterest = 0;
-        var totalPrincipal = 0;
-        var payoffMonth = totalPayments;
-
-        for (var month = 1; month <= totalPayments && balance > 0.01; month++) {
-            var paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + month - 1, 1);
-            var calendarYear = paymentDate.getFullYear();
-            var calendarMonth = paymentDate.getMonth() + 1;
-
-            // Interest for this month
-            var interestPayment = balance * monthlyRate;
-
-            // Principal portion of regular payment
-            var principalPayment = Math.min(monthlyPayment - interestPayment, balance);
-
-            // Extra payments — sum all matching entries
-            var extra = 0;
-            for (var ei = 0; ei < extraPayments.length; ei++) {
-                var ep = extraPayments[ei];
-                var amt = ep.amount || 0;
-                if (amt <= 0) continue;
-                var start = ep.startMonth || 1;
-                if (month < start) continue;
-                if (ep.type === 'monthly') {
-                    extra += amt;
-                } else if (ep.type === 'yearly') {
-                    if ((month - start) % 12 === 0) extra += amt;
-                } else if (ep.type === 'onetime') {
-                    if (month === start) extra += amt;
-                }
-            }
-
-            // Cap extra payment to remaining balance after principal
-            var maxExtra = Math.max(0, balance - principalPayment);
-            extra = Math.min(extra, maxExtra);
-
-            var totalPrincipalThisMonth = principalPayment + extra;
-            balance = Math.max(0, balance - totalPrincipalThisMonth);
-
-            totalInterest += interestPayment;
-            totalPrincipal += totalPrincipalThisMonth;
-
-            schedule.push({
-                month: month,
-                year: Math.ceil(month / 12),
-                calendarMonth: calendarMonth,
-                calendarYear: calendarYear,
-                payment: monthlyPayment + extra,
-                principal: totalPrincipalThisMonth,
-                interest: interestPayment,
-                extra: extra,
-                balance: balance,
-                accumPrincipal: totalPrincipal,
-                accumInterest: totalInterest
-            });
-
-            if (balance <= 0.01) {
-                payoffMonth = month;
-                break;
-            }
-        }
-
-        var payoffDate = new Date(startDate.getFullYear(), startDate.getMonth() + payoffMonth - 1, 1);
-
-        return {
-            schedule: schedule,
-            totalInterest: totalInterest,
-            totalPrincipal: totalPrincipal,
-            payoffDate: payoffDate,
-            payoffMonth: payoffMonth,
-            monthlyPayment: monthlyPayment
+        var pseudoLoan = {
+            loan_type:   'fixed',
+            loan_amount: principal,
+            interest:    annualRatePct,
+            term_years:  termYears
         };
+        return calculateAmortizationV2(pseudoLoan, 'intro_forever', startDate, extraPayments);
     }
 
     /**
@@ -560,6 +532,21 @@
 
     var expandedYears = {};
 
+    // Format a rate in % with 3 decimals, or '—' for null/zero.
+    function fmtRate(r) {
+        if (r == null || !isFinite(r)) return '—';
+        return r.toFixed(3) + '%';
+    }
+
+    // Toggle the Rate-column header + every Rate cell. Called whenever the
+    // selected loan changes; columnar visibility is class-based so it
+    // applies retroactively to all current and future rows.
+    function setRateColumnVisible(visible) {
+        document.querySelectorAll('[data-rate-col]').forEach(function(el) {
+            el.classList.toggle('hidden', !visible);
+        });
+    }
+
     function renderSchedule() {
         var loans = loadLoans();
         var loan = loans.find(function(l) { return l.id === selectedLoanId; });
@@ -583,20 +570,34 @@
 
         var startDate = new Date(schedSettings.startYear, schedSettings.startMonth - 1, 1);
 
-        var result = calculateAmortization(
-            loan.loan_amount,
-            loan.interest,
-            loan.term_years,
-            startDate,
-            extraPayments
-        );
+        // ARM-aware UI toggles. Fixed loans get exactly the previous
+        // schedule view (no scenario tabs, no badge, no Rate column).
+        var isArm = loan.loan_type === 'arm' && !!loan.arm;
+        var scenarioToUse = isArm ? scheduleScenario : 'intro_forever';
+        var armBadge = document.getElementById('schedule-arm-badge');
+        var scenCtl  = document.getElementById('schedule-scenario-control');
+        if (isArm) {
+            armBadge.textContent = armProductLabel(loan).replace('ARM ', '');
+            armBadge.classList.remove('hidden');
+            scenCtl.classList.remove('hidden');
+            setActiveScenarioButton(scenCtl, scenarioToUse);
+        } else {
+            armBadge.classList.add('hidden');
+            scenCtl.classList.add('hidden');
+        }
+        setRateColumnVisible(isArm);
+
+        var result = calculateAmortizationV2(loan, scenarioToUse, startDate, extraPayments);
 
         // Update summary
         document.getElementById('schedule-loan-amount').textContent      = fmtCurrency(loan.loan_amount);
+        var rateLabel = document.getElementById('schedule-interest-rate-label');
+        if (rateLabel) rateLabel.textContent = isArm ? 'Intro Rate' : 'Interest Rate';
         document.getElementById('schedule-interest-rate').textContent     = loan.interest ? loan.interest.toFixed(3) + '%' : '—';
         document.getElementById('schedule-total-interest').textContent    = fmtCurrency(result.totalInterest);
         document.getElementById('schedule-closing-costs').textContent     = fmtCurrency(loan.closing || 0);
         document.getElementById('schedule-cost-of-loan').textContent      = fmtCurrency(loan.loan_amount + result.totalInterest + (loan.closing || 0));
+        document.getElementById('schedule-monthly-pi').textContent        = fmtCurrency(result.monthlyPayment);
         document.getElementById('schedule-remaining-payments').textContent = result.payoffMonth + ' mo';
 
         var payoffStr = result.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -624,16 +625,30 @@
             dpTr.innerHTML =
                 '<td class="pl-6 pr-3 py-2"></td>' +
                 '<td class="px-3 py-2 text-base-content/60 text-xs font-medium whitespace-nowrap">' + dpLabel + '\u00a0<span class="text-success text-xs">(down)</span></td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/40 text-xs hidden" data-rate-col>—</td>' +
                 '<td class="px-3 py-2 text-right tabular-nums text-success text-xs">' + fmtCurrency(downPayment) + '</td>' +
                 '<td class="px-3 py-2 text-left tabular-nums text-base-content/50 text-xs">' + fmtCurrency(downPayment) + '</td>' +
                 '<td class="px-3 py-2 text-right tabular-nums text-base-content/40 text-xs">—</td>' +
                 '<td class="px-3 py-2 text-left tabular-nums text-base-content/40 text-xs">—</td>' +
                 '<td class="pl-3 pr-6 py-2 text-right tabular-nums text-base-content/80 text-xs">' + fmtCurrency(loan.loan_amount) + '</td>';
+            // Re-apply hidden state for the rate cell we just added
+            dpTr.querySelectorAll('[data-rate-col]').forEach(function(el) { el.classList.toggle('hidden', !isArm); });
             tbody.appendChild(dpTr);
         }
 
         yearData.forEach(function(yearInfo) {
             var isExpanded = expandedYears[yearInfo.year];
+
+            // Year-level rate display: a single value if all months are at
+            // the same rate; otherwise show the year's first → last rate.
+            var firstRate = yearInfo.months[0].rate;
+            var lastRate  = yearInfo.months[yearInfo.months.length - 1].rate;
+            var yearRateCell;
+            if (firstRate === lastRate) {
+                yearRateCell = fmtRate(firstRate);
+            } else {
+                yearRateCell = fmtRate(firstRate) + ' \u2192 ' + fmtRate(lastRate);
+            }
 
             // Year row
             var yearTr = document.createElement('tr');
@@ -646,11 +661,13 @@
                     '</span>' +
                 '</td>' +
                 '<td class="px-3 py-2 font-medium">' + yearInfo.year + '</td>' +
+                '<td class="px-3 py-2 text-right tabular-nums text-base-content/70 text-xs hidden" data-rate-col>' + yearRateCell + '</td>' +
                 '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(yearInfo.totalPrincipal) + '</td>' +
                 '<td class="px-3 py-2 text-left tabular-nums text-base-content/50">' + fmtCurrency(yearInfo.accumPrincipal + downPayment) + '</td>' +
                 '<td class="px-3 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(yearInfo.totalInterest) + '</td>' +
                 '<td class="px-3 py-2 text-left tabular-nums text-base-content/50">' + fmtCurrency(yearInfo.accumInterest) + '</td>' +
                 '<td class="pl-3 pr-6 py-2 text-right tabular-nums text-base-content/80">' + fmtCurrency(yearInfo.endBalance) + '</td>';
+            yearTr.querySelectorAll('[data-rate-col]').forEach(function(el) { el.classList.toggle('hidden', !isArm); });
             tbody.appendChild(yearTr);
 
             yearTr.addEventListener('click', function() {
@@ -671,13 +688,23 @@
                 monthTr.innerHTML =
                     '<td class="pl-6 pr-3 py-1.5"></td>' +
                     '<td class="px-3 py-1.5 text-base-content/60 text-xs pl-8">' + monthLabel + '</td>' +
+                    '<td class="px-3 py-1.5 text-right tabular-nums text-base-content/60 text-xs hidden" data-rate-col>' + fmtRate(monthEntry.rate) + '</td>' +
                     '<td class="px-3 py-1.5 text-right tabular-nums text-base-content/60 text-xs">' + fmtCurrency(monthEntry.principal) + extraIndicator + '</td>' +
                     '<td class="px-3 py-1.5 text-left tabular-nums text-base-content/40 text-xs">' + fmtCurrency(monthEntry.accumPrincipal + downPayment) + '</td>' +
                     '<td class="px-3 py-1.5 text-right tabular-nums text-base-content/60 text-xs">' + fmtCurrency(monthEntry.interest) + '</td>' +
                     '<td class="px-3 py-1.5 text-left tabular-nums text-base-content/40 text-xs">' + fmtCurrency(monthEntry.accumInterest) + '</td>' +
                     '<td class="pl-3 pr-6 py-1.5 text-right tabular-nums text-base-content/60 text-xs">' + fmtCurrency(monthEntry.balance) + '</td>';
+                monthTr.querySelectorAll('[data-rate-col]').forEach(function(el) { el.classList.toggle('hidden', !isArm); });
                 tbody.appendChild(monthTr);
             });
+        });
+    }
+
+    // Highlight the active button in a join (Worst|Flat|Best|Compare etc.).
+    function setActiveScenarioButton(controlEl, scenario) {
+        if (!controlEl) return;
+        controlEl.querySelectorAll('button[data-scenario]').forEach(function(btn) {
+            btn.classList.toggle('btn-active', btn.getAttribute('data-scenario') === scenario);
         });
     }
 
@@ -992,6 +1019,115 @@
     // ═══════════════════════════════════════════════════════════════════════════
 
     var GRAPH_COLORS = { interest: '#f87171', principal: '#4ade80', balance: '#60a5fa' };
+    // Per-scenario × metric colors in Compare mode. Flat uses the same hues
+    // as single-scenario mode; worst is darker, best is brighter.
+    var SCENARIO_METRIC_COLORS = {
+        balance:   { worst: '#1d4ed8', intro_forever: '#60a5fa', best: '#7dd3fc' },
+        interest:  { worst: '#b91c1c', intro_forever: '#f87171', best: '#fca5a5' },
+        principal: { worst: '#15803d', intro_forever: '#4ade80', best: '#86efac' }
+    };
+    var SCENARIO_METRIC_LABELS = {
+        balance:   'Loan Balance',
+        interest:  'Interest Paid',
+        principal: 'Principal Paid'
+    };
+    var SCENARIO_LABELS = {
+        worst:         'Worst',
+        intro_forever: 'Flat',
+        best:          'Best'
+    };
+    var COMPARE_METRICS = ['balance', 'interest', 'principal'];
+    var COMPARE_SCENARIOS = ['worst', 'intro_forever', 'best'];
+    var compareHiddenScenarios = {};
+    var LINE_HIDDEN_OPACITY = '0.06';
+
+    function isCompareScenarioVisible(sc) {
+        return !compareHiddenScenarios[sc];
+    }
+
+    function visibleCompareScenarios() {
+        return COMPARE_SCENARIOS.filter(function(sc) { return isCompareScenarioVisible(sc); });
+    }
+
+    function canHideCompareScenarios() {
+        return visibleCompareScenarios().length > 1;
+    }
+
+    function legendRowTitle(sc, visible) {
+        var name = SCENARIO_LABELS[sc];
+        if (visible && !canHideCompareScenarios()) {
+            return 'At least one scenario must stay visible';
+        }
+        return visible
+            ? 'Click to hide ' + name + ' scenario lines'
+            : 'Click to show ' + name + ' scenario lines';
+    }
+
+    function toggleCompareScenario(sc) {
+        if (isCompareScenarioVisible(sc)) {
+            if (!canHideCompareScenarios()) {
+                showToast('At least one scenario must stay visible on the chart', 'error');
+                return;
+            }
+            compareHiddenScenarios[sc] = true;
+        } else {
+            delete compareHiddenScenarios[sc];
+        }
+        legendPreviewScenario = null;
+        renderGraph();
+    }
+
+    var chartCursorIdx = 0;
+    var legendPreviewScenario = null;
+
+    function positionCompareHoverCircles(sc, idx) {
+        if (!graphData || !graphData.multiScenarios) return;
+        var sched2 = graphData.multiScenarios[sc];
+        if (!sched2 || !sched2.length) return;
+        idx = Math.max(0, Math.min(sched2.length - 1, idx));
+        var x = graphData.xS(idx);
+        var entry2 = sched2[idx];
+        if (!entry2) return;
+        COMPARE_METRICS.forEach(function(metric) {
+            var c = document.getElementById('hc-' + sc + '-' + metric);
+            if (!c) return;
+            var v = metric === 'interest'  ? entry2.accumInterest
+                  : metric === 'principal' ? entry2.accumPrincipal
+                  : entry2.balance;
+            c.setAttribute('cx', x.toFixed(1));
+            c.setAttribute('cy', graphData.yS(v).toFixed(1));
+        });
+    }
+
+    function setCompareScenarioPreview(sc, previewing) {
+        if (!graphData || !graphData.multiMode) return;
+        var visible = isCompareScenarioVisible(sc);
+        if (previewing && visible && !canHideCompareScenarios()) return;
+        if (previewing) {
+            legendPreviewScenario = sc;
+        } else if (legendPreviewScenario === sc) {
+            legendPreviewScenario = null;
+        }
+        var opacity = previewing
+            ? (visible ? LINE_HIDDEN_OPACITY : '1')
+            : (visible ? '1' : LINE_HIDDEN_OPACITY);
+        COMPARE_METRICS.forEach(function(metric) {
+            var path = document.getElementById('line-' + sc + '-' + metric);
+            if (path) path.setAttribute('stroke-opacity', opacity);
+            var hc = document.getElementById('hc-' + sc + '-' + metric);
+            if (!hc) return;
+            if (previewing && !visible) {
+                hc.style.display = '';
+                positionCompareHoverCircles(sc, chartCursorIdx);
+            } else if (!visible) {
+                hc.style.display = 'none';
+            }
+        });
+    }
+
+    function scenarioMetricColor(scenario, metric) {
+        return SCENARIO_METRIC_COLORS[metric][scenario];
+    }
     var GRAPH_EXTRA_OPEN_KEY = 'amortization_graph_extra_open';
     var graphData = null;
 
@@ -1080,6 +1216,183 @@
         document.getElementById('legend-balance').textContent   = fmtCurrency(entry.balance);
     }
 
+    function updateGraphLegendMulti(idx) {
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        if (!graphData || !graphData.multiScenarios) return;
+        // Set date from primary scenario
+        var primary = graphData.sched;
+        if (idx == null || idx < 0) idx = primary.length - 1;
+        idx = Math.max(0, Math.min(primary.length - 1, idx));
+        var primaryEntry = primary[idx];
+        document.getElementById('legend-date').textContent = primaryEntry
+            ? months[primaryEntry.calendarMonth - 1] + ' ' + primaryEntry.calendarYear
+            : '—';
+        var rows = document.getElementById('legend-multi').querySelectorAll('[data-legend-scenario]');
+        rows.forEach(function(row) {
+            var sc = row.getAttribute('data-legend-scenario');
+            var metric = row.getAttribute('data-legend-metric');
+            var sched = graphData.multiScenarios[sc];
+            var valEl = row.querySelector('[data-legend-value]');
+            if (!sched || !valEl || !metric) { if (valEl) valEl.textContent = '—'; return; }
+            var entry = sched[Math.min(idx, sched.length - 1)];
+            if (!entry) { valEl.textContent = '—'; return; }
+            var val = metric === 'interest'  ? entry.accumInterest
+                    : metric === 'principal' ? entry.accumPrincipal
+                    : entry.balance;
+            valEl.textContent = fmtCurrency(val);
+        });
+    }
+
+    function createCompareLegendRow(sc, metric) {
+        var groupVisible = isCompareScenarioVisible(sc);
+        var row = document.createElement('div');
+        row.className = 'flex items-center gap-3 cursor-pointer hover:bg-base-300/20 rounded px-1 -mx-1';
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+        row.setAttribute('data-legend-scenario', sc);
+        row.setAttribute('data-legend-metric', metric);
+        row.setAttribute('title', legendRowTitle(sc, groupVisible));
+        var labelClass = groupVisible
+            ? (canHideCompareScenarios()
+                ? 'legend-compare-label text-sm text-base-content/70 flex-1 group-hover:line-through group-hover:text-base-content/50'
+                : 'legend-compare-label text-sm text-base-content/70 flex-1')
+            : 'legend-compare-label text-sm text-base-content/50 flex-1 line-through group-hover:[text-decoration-line:none] group-hover:text-base-content/70';
+        row.innerHTML =
+            '<svg width="13" height="13" class="shrink-0"><circle cx="6.5" cy="6.5" r="5.5" fill="' + scenarioMetricColor(sc, metric) + '"/></svg>' +
+            '<span class="' + labelClass + '">' + SCENARIO_LABELS[sc] + ' \u00b7 ' + SCENARIO_METRIC_LABELS[metric] + '</span>' +
+            '<span class="text-sm font-semibold tabular-nums text-base-content/90" data-legend-value>\u2014</span>';
+        return row;
+    }
+
+    // Choose which legend (single 3-row or multi N-row) is visible.
+    function showLegendMode(multiMode, scenarios) {
+        var single = document.getElementById('legend-single');
+        var multi  = document.getElementById('legend-multi');
+        var active = document.getElementById('legend-multi-active');
+        var hidden = document.getElementById('legend-multi-hidden');
+        var hiddenWrap = document.getElementById('legend-multi-hidden-wrap');
+        if (multiMode) {
+            legendPreviewScenario = null;
+            single.classList.add('hidden');
+            multi.classList.remove('hidden');
+            active.innerHTML = '';
+            hidden.innerHTML = '';
+            scenarios.forEach(function(sc) {
+                var container = isCompareScenarioVisible(sc) ? active : hidden;
+                var group = document.createElement('div');
+                group.className = 'legend-scenario-group group space-y-1';
+                group.setAttribute('data-legend-scenario-group', sc);
+                COMPARE_METRICS.forEach(function(metric) {
+                    group.appendChild(createCompareLegendRow(sc, metric));
+                });
+                if (!isCompareScenarioVisible(sc) || canHideCompareScenarios()) {
+                    group.addEventListener('mouseenter', function() { setCompareScenarioPreview(sc, true); });
+                    group.addEventListener('mouseleave', function() { setCompareScenarioPreview(sc, false); });
+                }
+                container.appendChild(group);
+            });
+            var hasHidden = Object.keys(compareHiddenScenarios).length > 0;
+            hiddenWrap.classList.toggle('hidden', !hasHidden);
+        } else {
+            single.classList.remove('hidden');
+            multi.classList.add('hidden');
+        }
+    }
+
+    // Update the graph summary bar. ARM compare mode shows low–high ranges
+    // for total interest and total cost; single scenarios show one value each.
+    function formatSummaryPi(loan, primary, isArm, graphScenario) {
+        if (!isArm) return fmtCurrency(primary.monthlyPayment);
+        if (graphScenario !== 'compare') return fmtCurrency(primary.monthlyPayment);
+        var stats = computeLoanScenarioStats(loan);
+        if (Math.abs(stats.maxPi - stats.minPi) > 1) {
+            return fmtCurrency(stats.minPi) + '\u2013' + fmtCurrency(stats.maxPi);
+        }
+        return fmtCurrency(primary.monthlyPayment);
+    }
+
+    function updateGraphSummary(loan, primary, scenariosCache, isArm, graphScenario) {
+        document.getElementById('graph-summary').classList.remove('hidden');
+        document.getElementById('graph-loan-amount').textContent = fmtCurrency(loan.loan_amount);
+        var rateLabel = document.getElementById('graph-interest-rate-label');
+        if (rateLabel) rateLabel.textContent = isArm ? 'Intro Rate' : 'Interest Rate';
+        document.getElementById('graph-interest-rate').textContent =
+            loan.interest ? loan.interest.toFixed(3) + '%' : '—';
+        document.getElementById('graph-monthly-pi').textContent = formatSummaryPi(loan, primary, isArm, graphScenario);
+
+        if (isArm) {
+            document.getElementById('graph-closing-costs').textContent = fmtCurrency(loan.closing || 0);
+            var fmtDate = function(d) { return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); };
+
+            if (graphScenario === 'compare') {
+                var minInt = Infinity, maxInt = -Infinity;
+                var minPay = Infinity, maxPay = 0;
+                var earlyPayoff = null, latePayoff = null;
+                ARM_SCENARIOS.forEach(function(sc) {
+                    var r = scenariosCache[sc];
+                    if (!r) return;
+                    if (r.totalInterest < minInt) minInt = r.totalInterest;
+                    if (r.totalInterest > maxInt) maxInt = r.totalInterest;
+                    if (r.payoffMonth < minPay) minPay = r.payoffMonth;
+                    if (r.payoffMonth > maxPay) maxPay = r.payoffMonth;
+                    if (!earlyPayoff || r.payoffDate < earlyPayoff) earlyPayoff = r.payoffDate;
+                    if (!latePayoff  || r.payoffDate > latePayoff)  latePayoff  = r.payoffDate;
+                });
+                var rangeOpen = Math.abs(maxInt - minInt) > 1;
+                document.getElementById('graph-total-interest').textContent = rangeOpen
+                    ? fmtCurrency(minInt) + '\u2013' + fmtCurrency(maxInt)
+                    : fmtCurrency(primary.totalInterest);
+                var minCost = loan.loan_amount + minInt + (loan.closing || 0);
+                var maxCost = loan.loan_amount + maxInt + (loan.closing || 0);
+                document.getElementById('graph-cost-of-loan').textContent = rangeOpen
+                    ? fmtCurrency(minCost) + '\u2013' + fmtCurrency(maxCost)
+                    : fmtCurrency(loan.loan_amount + primary.totalInterest + (loan.closing || 0));
+                document.getElementById('graph-payoff-date').textContent =
+                    earlyPayoff && latePayoff && earlyPayoff.getTime() !== latePayoff.getTime()
+                        ? fmtDate(earlyPayoff) + '\u2013' + fmtDate(latePayoff)
+                        : fmtDate(primary.payoffDate);
+                document.getElementById('graph-remaining-payments').textContent =
+                    minPay !== maxPay ? minPay + '\u2013' + maxPay + ' mo' : primary.payoffMonth + ' mo';
+            } else {
+                document.getElementById('graph-total-interest').textContent =
+                    fmtCurrency(primary.totalInterest);
+                document.getElementById('graph-cost-of-loan').textContent =
+                    fmtCurrency(loan.loan_amount + primary.totalInterest + (loan.closing || 0));
+                document.getElementById('graph-payoff-date').textContent = fmtDate(primary.payoffDate);
+                document.getElementById('graph-remaining-payments').textContent =
+                    primary.payoffMonth + ' mo';
+            }
+        } else {
+            document.getElementById('graph-total-interest').textContent =
+                fmtCurrency(primary.totalInterest);
+            document.getElementById('graph-closing-costs').textContent =
+                fmtCurrency(loan.closing || 0);
+            document.getElementById('graph-cost-of-loan').textContent =
+                fmtCurrency(loan.loan_amount + primary.totalInterest + (loan.closing || 0));
+            document.getElementById('graph-payoff-date').textContent =
+                primary.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            document.getElementById('graph-remaining-payments').textContent =
+                primary.payoffMonth + ' mo';
+        }
+    }
+
+    // Adjustment markers: faint vertical guides at the fixed-period
+    // boundary (rate first changes) and at each subsequent adjustment month.
+    function drawAdjustmentMarkers(svg, loan, primarySched, xS, mg, cH) {
+        if (loan.loan_type !== 'arm' || !loan.arm) return;
+        var fixedMonths = Math.round((loan.arm.fixed_period_years || 5) * 12);
+        var interval    = loan.arm.adjustment_interval_months || 12;
+        for (var m = fixedMonths + 1; m <= primarySched.length; m += interval) {
+            var idx = m - 1;
+            if (idx < 0 || idx >= primarySched.length) continue;
+            var x = xS(idx);
+            svg.appendChild(svgEl('line', {
+                x1: x, y1: mg.t, x2: x, y2: mg.t + cH,
+                stroke: 'rgba(255,255,255,0.10)', 'stroke-width': '1', 'stroke-dasharray': '2 3'
+            }));
+        }
+    }
+
     function renderGraph() {
         var loans = loadLoans();
         var loan  = loans.find(function(l) { return l.id === selectedLoanId; });
@@ -1088,8 +1401,14 @@
         while (svg.firstChild) svg.removeChild(svg.firstChild);
         graphData = null;
 
+        var armBadge = document.getElementById('graph-arm-badge');
+        var scenCtl  = document.getElementById('graph-scenario-control');
+
         if (!loan) {
             document.getElementById('graph-summary').classList.add('hidden');
+            scenCtl.classList.add('hidden');
+            armBadge.classList.add('hidden');
+            showLegendMode(false);
             updateGraphLegend(null);
             var empty = svgEl('text', {
                 x: '50%', y: '50%', 'text-anchor': 'middle',
@@ -1103,40 +1422,108 @@
         var extraPayments = loadExtraPayments();
         var schedSettings = loadScheduleSettings();
         var startDate     = new Date(schedSettings.startYear, schedSettings.startMonth - 1, 1);
-        var result        = calculateAmortization(loan.loan_amount, loan.interest, loan.term_years, startDate, extraPayments);
-        var sched         = result.schedule;
 
-        // Update summary bar
-        document.getElementById('graph-summary').classList.remove('hidden');
-        document.getElementById('graph-loan-amount').textContent        = fmtCurrency(loan.loan_amount);
-        document.getElementById('graph-interest-rate').textContent      = loan.interest ? loan.interest.toFixed(3) + '%' : '—';
-        document.getElementById('graph-total-interest').textContent     = fmtCurrency(result.totalInterest);
-        document.getElementById('graph-closing-costs').textContent      = fmtCurrency(loan.closing || 0);
-        document.getElementById('graph-cost-of-loan').textContent       = fmtCurrency(loan.loan_amount + result.totalInterest + (loan.closing || 0));
-        document.getElementById('graph-payoff-date').textContent        = result.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        document.getElementById('graph-remaining-payments').textContent = result.payoffMonth + ' mo';
+        // Toggle ARM controls and compute the scenario cache. For FRM,
+        // we only compute the intro_forever scenario (rate is constant
+        // by definition, so the four ARM scenarios collapse to one).
+        var isArm = loan.loan_type === 'arm' && !!loan.arm;
+        var scenariosCache = {};
+        if (isArm) {
+            armBadge.textContent = armProductLabel(loan).replace('ARM ', '');
+            armBadge.classList.remove('hidden');
+            scenCtl.classList.remove('hidden');
+            setActiveScenarioButton(scenCtl, graphScenario);
+            ARM_SCENARIOS.forEach(function(sc) {
+                scenariosCache[sc] = calculateAmortizationV2(loan, sc, startDate, extraPayments);
+            });
+        } else {
+            armBadge.classList.add('hidden');
+            scenCtl.classList.add('hidden');
+            scenariosCache.intro_forever = calculateAmortizationV2(loan, 'intro_forever', startDate, extraPayments);
+        }
+
+        // Resolve the active graph mode.
+        //   FRM           → 'single' / intro_forever
+        //   ARM 'worst'   → 'single' / worst
+        //   ARM 'flat'    → 'single' / intro_forever (rate never adjusts)
+        //   ARM 'best'    → 'single' / best
+        //   ARM 'compare' → 'multi'  / [worst, intro_forever, best] × balance, interest, principal
+        var multiMode = false, multiScenarios = [], singleScenario = 'intro_forever';
+        if (!isArm) {
+            singleScenario = 'intro_forever';
+        } else if (graphScenario === 'compare') {
+            multiMode = true;
+            multiScenarios = ['worst', 'intro_forever', 'best'];
+        } else if (graphScenario === 'flat') {
+            singleScenario = 'intro_forever';
+        } else if (graphScenario === 'best') {
+            singleScenario = 'best';
+        } else {
+            // 'worst' or unrecognized default
+            singleScenario = 'worst';
+        }
+
+        var primary = multiMode ? scenariosCache.intro_forever : scenariosCache[singleScenario];
+        if (!primary) primary = scenariosCache.intro_forever;
+        var sched = primary.schedule;
+
+        updateGraphSummary(loan, primary, scenariosCache, isArm, graphScenario);
 
         // Dimensions — skip draw if panel is hidden
         var container = document.getElementById('graph-chart-container');
         var W = container.clientWidth;
         var H = container.clientHeight;
-        if (W < 50 || H < 50) { updateGraphLegend(sched[sched.length - 1]); return; }
+        if (W < 50 || H < 50) {
+            if (multiMode) { showLegendMode(true, multiScenarios); updateGraphLegendMulti(sched.length - 1); }
+            else { showLegendMode(false); updateGraphLegend(sched[sched.length - 1]); }
+            return;
+        }
 
         var mg = { t: 18, r: 18, b: 34, l: 68 };
         var cW = W - mg.l - mg.r;
         var cH = H - mg.t - mg.b;
         var n  = sched.length;
 
-        // Y domain: true peak across all three curves; niceYTicks always rounds up to a tick
-        // strictly above dataMax, so no curve ever touches or clips the top edge
-        var dataMax = Math.max(loan.loan_amount, result.totalInterest, result.totalPrincipal);
+        // Y domain — all visible series (single: 3 lines; compare: 9 lines).
+        var dataMax;
+        if (multiMode) {
+            dataMax = loan.loan_amount;
+            COMPARE_SCENARIOS.forEach(function(sc) {
+                var r = scenariosCache[sc];
+                if (!r) return;
+                r.schedule.forEach(function(e) {
+                    dataMax = Math.max(dataMax, e.balance, e.accumInterest, e.accumPrincipal);
+                });
+            });
+        } else {
+            dataMax = Math.max(loan.loan_amount, primary.totalInterest, primary.totalPrincipal);
+        }
         var yTicks = niceYTicks(dataMax, 5);
         var yMax   = yTicks[yTicks.length - 1];
 
         function xS(i) { return mg.l + (i / Math.max(n - 1, 1)) * cW; }
         function yS(v) { return mg.t + cH * (1 - v / yMax); }
 
-        graphData = { sched: sched, xS: xS, yS: yS, mg: mg, cW: cW, cH: cH, W: W, H: H };
+        graphData = {
+            sched:          sched,
+            xS:             xS,
+            yS:             yS,
+            mg:             mg,
+            cW:             cW,
+            cH:             cH,
+            W:              W,
+            H:              H,
+            multiMode:      multiMode,
+            multiScenarios: multiMode
+                              ? (function() {
+                                    var o = {};
+                                    multiScenarios.forEach(function(sc) {
+                                        o[sc] = scenariosCache[sc] ? scenariosCache[sc].schedule : [];
+                                    });
+                                    return o;
+                                })()
+                              : null
+        };
         svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
         // Clip path
@@ -1162,9 +1549,9 @@
         });
 
         // X axis year labels
-        var yearSpan = result.payoffDate.getFullYear() - startDate.getFullYear();
+        var yearSpan = primary.payoffDate.getFullYear() - startDate.getFullYear();
         var xStep    = yearSpan <= 5 ? 1 : yearSpan <= 12 ? 2 : 5;
-        for (var labYr = startDate.getFullYear(); labYr <= result.payoffDate.getFullYear(); labYr += xStep) {
+        for (var labYr = startDate.getFullYear(); labYr <= primary.payoffDate.getFullYear(); labYr += xStep) {
             var mi = -1;
             for (var k = 0; k < sched.length; k++) {
                 if (sched[k].calendarYear === labYr) { mi = k; break; }
@@ -1189,31 +1576,62 @@
             fill: 'none', stroke: 'rgba(255,255,255,0.1)', 'stroke-width': '1'
         }));
 
-        // Build line paths
-        var iPts = [], pPts = [], bPts = [];
-        sched.forEach(function(e, i) {
-            var x = xS(i);
-            iPts.push([x, yS(e.accumInterest)]);
-            pPts.push([x, yS(e.accumPrincipal)]);
-            bPts.push([x, yS(e.balance)]);
-        });
+        // ARM adjustment markers — drawn behind line paths
+        drawAdjustmentMarkers(svg, loan, sched, xS, mg, cH);
 
         var lineGroup = svgEl('g', { 'clip-path': 'url(#amort-clip)' });
-        lineGroup.appendChild(svgEl('path', { d: buildSvgPath(bPts), fill: 'none', stroke: GRAPH_COLORS.balance,   'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-        lineGroup.appendChild(svgEl('path', { d: buildSvgPath(iPts), fill: 'none', stroke: GRAPH_COLORS.interest,  'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-        lineGroup.appendChild(svgEl('path', { d: buildSvgPath(pPts), fill: 'none', stroke: GRAPH_COLORS.principal, 'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-        svg.appendChild(lineGroup);
-
-        // Hover group (hidden until mousemove)
         var hg = svgEl('g', { id: 'chart-hover' });
         hg.style.display = 'none';
         hg.appendChild(svgEl('line', {
             id: 'hover-vline', x1: 0, y1: mg.t, x2: 0, y2: mg.t + cH,
             stroke: 'rgba(255,255,255,0.45)', 'stroke-width': '1', 'stroke-dasharray': '4 3'
         }));
-        hg.appendChild(svgEl('circle', { id: 'hc-interest',  r: '4.5', fill: GRAPH_COLORS.interest,  stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
-        hg.appendChild(svgEl('circle', { id: 'hc-principal', r: '4.5', fill: GRAPH_COLORS.principal, stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
-        hg.appendChild(svgEl('circle', { id: 'hc-balance',   r: '4.5', fill: GRAPH_COLORS.balance,   stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+
+        if (multiMode) {
+            multiScenarios.forEach(function(sc) {
+                var r = scenariosCache[sc];
+                if (!r) return;
+                COMPARE_METRICS.forEach(function(metric) {
+                    var valueOf = metric === 'interest'  ? function(e) { return e.accumInterest; }
+                                : metric === 'principal' ? function(e) { return e.accumPrincipal; }
+                                : function(e) { return e.balance; };
+                    var pts = r.schedule.map(function(e, i) { return [xS(i), yS(valueOf(e))]; });
+                    var scVisible = isCompareScenarioVisible(sc);
+                    lineGroup.appendChild(svgEl('path', {
+                        id: 'line-' + sc + '-' + metric,
+                        'data-series-scenario': sc,
+                        d: buildSvgPath(pts), fill: 'none', stroke: scenarioMetricColor(sc, metric),
+                        'stroke-width': metric === 'balance' ? '2' : '1.5',
+                        'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+                        'stroke-opacity': scVisible ? '1' : LINE_HIDDEN_OPACITY
+                    }));
+                    var hc = svgEl('circle', {
+                        id: 'hc-' + sc + '-' + metric, r: '4.5', fill: scenarioMetricColor(sc, metric),
+                        stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5'
+                    });
+                    if (!scVisible) hc.style.display = 'none';
+                    hg.appendChild(hc);
+                });
+            });
+            showLegendMode(true, multiScenarios);
+        } else {
+            // Single scenario: existing 3-line view.
+            var iPts = [], pPts = [], bPts = [];
+            sched.forEach(function(e, i) {
+                var x = xS(i);
+                iPts.push([x, yS(e.accumInterest)]);
+                pPts.push([x, yS(e.accumPrincipal)]);
+                bPts.push([x, yS(e.balance)]);
+            });
+            lineGroup.appendChild(svgEl('path', { d: buildSvgPath(bPts), fill: 'none', stroke: GRAPH_COLORS.balance,   'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+            lineGroup.appendChild(svgEl('path', { d: buildSvgPath(iPts), fill: 'none', stroke: GRAPH_COLORS.interest,  'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+            lineGroup.appendChild(svgEl('path', { d: buildSvgPath(pPts), fill: 'none', stroke: GRAPH_COLORS.principal, 'stroke-width': '2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+            hg.appendChild(svgEl('circle', { id: 'hc-interest',  r: '4.5', fill: GRAPH_COLORS.interest,  stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+            hg.appendChild(svgEl('circle', { id: 'hc-principal', r: '4.5', fill: GRAPH_COLORS.principal, stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+            hg.appendChild(svgEl('circle', { id: 'hc-balance',   r: '4.5', fill: GRAPH_COLORS.balance,   stroke: 'rgba(0,0,0,0.6)', 'stroke-width': '1.5' }));
+            showLegendMode(false);
+        }
+        svg.appendChild(lineGroup);
         svg.appendChild(hg);
 
         // Transparent overlay for mouse events
@@ -1224,59 +1642,81 @@
         svg.appendChild(overlay);
 
         // Default legend = final (payoff) month; restore pin if one was active
+        var initialIdx = (pinnedIdx !== null) ? Math.max(0, Math.min(pinnedIdx, sched.length - 1)) : sched.length - 1;
+        applyChartHover(initialIdx);
         if (pinnedIdx !== null) {
-            var pi = Math.max(0, Math.min(pinnedIdx, sched.length - 1));
-            var px = graphData.xS(pi);
-            var pe = sched[pi];
-            var hg2 = document.getElementById('chart-hover');
-            hg2.style.display = '';
-            document.getElementById('hover-vline').setAttribute('x1', px.toFixed(1));
-            document.getElementById('hover-vline').setAttribute('x2', px.toFixed(1));
-            document.getElementById('hc-interest').setAttribute('cx',  px.toFixed(1));
-            document.getElementById('hc-interest').setAttribute('cy',  graphData.yS(pe.accumInterest).toFixed(1));
-            document.getElementById('hc-principal').setAttribute('cx', px.toFixed(1));
-            document.getElementById('hc-principal').setAttribute('cy', graphData.yS(pe.accumPrincipal).toFixed(1));
-            document.getElementById('hc-balance').setAttribute('cx',   px.toFixed(1));
-            document.getElementById('hc-balance').setAttribute('cy',   graphData.yS(pe.balance).toFixed(1));
-            updateGraphLegend(pe);
             chartLocked = true;
             document.getElementById('legend-pin-badge').classList.remove('hidden');
-        } else {
-            updateGraphLegend(sched[sched.length - 1]);
         }
     }
 
     var chartLocked = false;
     var pinnedIdx   = null;  // survives re-renders; null = no pin
 
+    // Position crosshair + hover circles + legend at the given month index.
+    // Works for both single- and multi-scenario modes.
+    function applyChartHover(idx) {
+        if (!graphData) return;
+        var sched = graphData.sched;
+        if (!sched.length) return;
+        idx = Math.max(0, Math.min(sched.length - 1, idx));
+        chartCursorIdx = idx;
+        var x = graphData.xS(idx);
+        var hg = document.getElementById('chart-hover');
+        if (hg) hg.style.display = '';
+        var vline = document.getElementById('hover-vline');
+        if (vline) {
+            vline.setAttribute('x1', x.toFixed(1));
+            vline.setAttribute('x2', x.toFixed(1));
+        }
+        if (graphData.multiMode) {
+            Object.keys(graphData.multiScenarios).forEach(function(sc) {
+                if (!isCompareScenarioVisible(sc)) return;
+                var sched2 = graphData.multiScenarios[sc];
+                var entry2 = sched2[Math.min(idx, sched2.length - 1)];
+                if (!entry2) return;
+                COMPARE_METRICS.forEach(function(metric) {
+                    var c = document.getElementById('hc-' + sc + '-' + metric);
+                    if (!c) return;
+                    var v = metric === 'interest'  ? entry2.accumInterest
+                          : metric === 'principal' ? entry2.accumPrincipal
+                          : entry2.balance;
+                    c.setAttribute('cx', x.toFixed(1));
+                    c.setAttribute('cy', graphData.yS(v).toFixed(1));
+                });
+            });
+            if (legendPreviewScenario && !isCompareScenarioVisible(legendPreviewScenario)) {
+                positionCompareHoverCircles(legendPreviewScenario, idx);
+            }
+            updateGraphLegendMulti(idx);
+        } else {
+            var entry = sched[idx];
+            ['interest', 'principal', 'balance'].forEach(function(key) {
+                var c = document.getElementById('hc-' + key);
+                if (!c) return;
+                c.setAttribute('cx', x.toFixed(1));
+                var v = (key === 'interest') ? entry.accumInterest
+                      : (key === 'principal') ? entry.accumPrincipal
+                      : entry.balance;
+                c.setAttribute('cy', graphData.yS(v).toFixed(1));
+            });
+            updateGraphLegend(entry);
+        }
+    }
+
+    function chartHoverIdx(clientX) {
+        var svg  = document.getElementById('amort-chart');
+        var rect = svg.getBoundingClientRect();
+        var svgX = (clientX - rect.left) * (graphData.W / rect.width);
+        var relX = svgX - graphData.mg.l;
+        var n    = graphData.sched.length;
+        return Math.max(0, Math.min(n - 1, Math.round(relX / graphData.cW * (n - 1))));
+    }
+
     function onChartHover(e) {
         if (chartLocked) return;
         if (!graphData) return;
-        var svg  = document.getElementById('amort-chart');
-        var rect = svg.getBoundingClientRect();
-        var svgX = (e.clientX - rect.left) * (graphData.W / rect.width);
-        var relX = svgX - graphData.mg.l;
-        var n    = graphData.sched.length;
-        var idx  = Math.round(relX / graphData.cW * (n - 1));
-        idx = Math.max(0, Math.min(n - 1, idx));
-
-        var entry = graphData.sched[idx];
-        var x     = graphData.xS(idx);
-
-        var hg = document.getElementById('chart-hover');
-        hg.style.display = '';
-
-        document.getElementById('hover-vline').setAttribute('x1', x.toFixed(1));
-        document.getElementById('hover-vline').setAttribute('x2', x.toFixed(1));
-
-        document.getElementById('hc-interest').setAttribute('cx',  x.toFixed(1));
-        document.getElementById('hc-interest').setAttribute('cy',  graphData.yS(entry.accumInterest).toFixed(1));
-        document.getElementById('hc-principal').setAttribute('cx', x.toFixed(1));
-        document.getElementById('hc-principal').setAttribute('cy', graphData.yS(entry.accumPrincipal).toFixed(1));
-        document.getElementById('hc-balance').setAttribute('cx',   x.toFixed(1));
-        document.getElementById('hc-balance').setAttribute('cy',   graphData.yS(entry.balance).toFixed(1));
-
-        updateGraphLegend(entry);
+        applyChartHover(chartHoverIdx(e.clientX));
     }
 
     function onChartLeave() {
@@ -1284,7 +1724,7 @@
         var hg = document.getElementById('chart-hover');
         if (hg) hg.style.display = 'none';
         if (graphData && graphData.sched.length) {
-            updateGraphLegend(graphData.sched[graphData.sched.length - 1]);
+            applyChartHover(graphData.sched.length - 1);
         }
     }
 
@@ -1301,30 +1741,9 @@
 
         // Lock at snapped crosshair position
         chartLocked = true;
-        var svg  = document.getElementById('amort-chart');
-        var rect = svg.getBoundingClientRect();
-        var svgX = (e.clientX - rect.left) * (graphData.W / rect.width);
-        var relX = svgX - graphData.mg.l;
-        var n    = graphData.sched.length;
-        var idx  = Math.round(relX / graphData.cW * (n - 1));
-        idx = Math.max(0, Math.min(n - 1, idx));
+        var idx = chartHoverIdx(e.clientX);
         pinnedIdx = idx;
-        var x     = graphData.xS(idx);
-        var entry = graphData.sched[idx];
-
-        // Sync crosshair to this position (may have drifted between hover events)
-        var hg = document.getElementById('chart-hover');
-        hg.style.display = '';
-        document.getElementById('hover-vline').setAttribute('x1', x.toFixed(1));
-        document.getElementById('hover-vline').setAttribute('x2', x.toFixed(1));
-        document.getElementById('hc-interest').setAttribute('cx',  x.toFixed(1));
-        document.getElementById('hc-interest').setAttribute('cy',  graphData.yS(entry.accumInterest).toFixed(1));
-        document.getElementById('hc-principal').setAttribute('cx', x.toFixed(1));
-        document.getElementById('hc-principal').setAttribute('cy', graphData.yS(entry.accumPrincipal).toFixed(1));
-        document.getElementById('hc-balance').setAttribute('cx',   x.toFixed(1));
-        document.getElementById('hc-balance').setAttribute('cy',   graphData.yS(entry.balance).toFixed(1));
-        updateGraphLegend(entry);
-
+        applyChartHover(idx);
         badge.classList.remove('hidden');
     }
 
@@ -1510,6 +1929,48 @@
     });
 
     document.getElementById('graph-add-extra-btn').addEventListener('click', addGraphExtraPayment);
+
+    // ── ARM scenario controls ────────────────────────────────────────────────
+    document.getElementById('schedule-scenario-control').addEventListener('click', function(e) {
+        var btn = e.target.closest('button[data-scenario]');
+        if (!btn) return;
+        scheduleScenario = btn.getAttribute('data-scenario');
+        localStorage.setItem(SCHED_SCENARIO_KEY, scheduleScenario);
+        renderSchedule();
+    });
+
+    document.getElementById('legend-multi').addEventListener('click', function(e) {
+        var row = e.target.closest('[data-legend-scenario]');
+        if (!row) return;
+        var sc = row.getAttribute('data-legend-scenario');
+        if (sc) toggleCompareScenario(sc);
+    });
+
+    document.getElementById('legend-multi').addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var row = e.target.closest('[data-legend-scenario]');
+        if (!row) return;
+        e.preventDefault();
+        var sc = row.getAttribute('data-legend-scenario');
+        if (sc) toggleCompareScenario(sc);
+    });
+
+    document.getElementById('graph-scenario-control').addEventListener('click', function(e) {
+        var btn = e.target.closest('button[data-scenario]');
+        if (!btn) return;
+        var prevScenario = graphScenario;
+        graphScenario = btn.getAttribute('data-scenario');
+        if (prevScenario === 'compare' && graphScenario !== 'compare') {
+            compareHiddenScenarios = {};
+            legendPreviewScenario = null;
+        }
+        localStorage.setItem(GRAPH_SCENARIO_KEY, graphScenario);
+        // Drop any pinned cursor — index meaning may differ across modes.
+        pinnedIdx   = null;
+        chartLocked = false;
+        document.getElementById('legend-pin-badge').classList.add('hidden');
+        renderGraph();
+    });
 
     // ResizeObserver redraws chart when container dimensions change
     if (window.ResizeObserver) {
