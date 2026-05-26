@@ -1,0 +1,16 @@
+{
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": [
+        "no-var",
+        "no-unused-vars",
+        "no-inner-declarations",
+        "no-window"
+      ]
+    }
+  },
+  "fmt": {
+    "include": ["app/static/"]
+  }
+}
