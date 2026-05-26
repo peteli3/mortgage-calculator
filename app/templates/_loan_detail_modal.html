@@ -5,69 +5,53 @@
         <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
             <span class="text-base-content/60">Loan Amount</span>
             <span id="modal-loan-amount" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Interest Rate</span>
             <span id="modal-interest" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Term</span>
             <span id="modal-term" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">P&amp;I / mo</span>
             <span id="modal-pi" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Monthly Total</span>
             <span id="modal-monthly-total" class="text-right tabular-nums font-medium"></span>
-
             <div class="col-span-2 border-t border-base-300 my-1"></div>
-
             <span class="text-base-content/60">Points</span>
             <span id="modal-points" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Net Credits</span>
             <span id="modal-net-credits" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Net Fees</span>
             <span id="modal-net-fees" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Closing Cost</span>
             <span id="modal-closing" class="text-right tabular-nums font-medium"></span>
-
             <div class="col-span-2 border-t border-base-300 my-1"></div>
-
             <span class="text-base-content/60">Prop Tax / mo</span>
             <span id="modal-prop-tax" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">HOA / mo</span>
             <span id="modal-hoa" class="text-right tabular-nums font-medium"></span>
-
             <span class="text-base-content/60">Insurance / yr</span>
             <span id="modal-insurance" class="text-right tabular-nums font-medium"></span>
         </div>
-
         {# Adjustable rate details — populated by mortgage-loan-detail.js when
            the selected loan has loan_type === 'arm'; hidden otherwise so the
            modal looks identical to today for Fixed loans. #}
-        <div id="modal-arm-section" class="hidden mt-4 pt-3 border-t border-base-300">
+        <div id="modal-arm-section"
+             class="hidden mt-4 pt-3 border-t border-base-300">
             <div class="flex items-center justify-between mb-2">
-                <h4 class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                    Adjustable Rate Details
-                </h4>
-                <span id="modal-arm-product" class="badge badge-sm badge-outline text-base-content/60"></span>
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-base-content/50">Adjustable Rate Details</h4>
+                <span id="modal-arm-product"
+                      class="badge badge-sm badge-outline text-base-content/60"></span>
             </div>
             <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
-                <span class="text-base-content/60" title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</span>
+                <span class="text-base-content/60"
+                      title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</span>
                 <span id="modal-arm-margin" class="text-right tabular-nums font-medium"></span>
-
                 <span class="text-base-content/60">Caps (init/per/life)</span>
                 <span id="modal-arm-caps" class="text-right tabular-nums font-medium"></span>
-
                 <span class="text-base-content/60">Fixed Period</span>
-                <span id="modal-arm-fixed-period" class="text-right tabular-nums font-medium"></span>
-
+                <span id="modal-arm-fixed-period"
+                      class="text-right tabular-nums font-medium"></span>
                 <span class="text-base-content/60">First Adjustment</span>
                 <span id="modal-arm-first-adj" class="text-right tabular-nums font-medium"></span>
             </div>
-
             <h5 class="text-xs font-semibold uppercase tracking-wide text-base-content/50 mt-4 mb-2">
                 Terminal Rates &amp; P&amp;I by Scenario
             </h5>
@@ -75,24 +59,24 @@
                 <span class="text-base-content/50 text-xs uppercase tracking-wide"></span>
                 <span class="text-base-content/50 text-xs uppercase tracking-wide text-right">Rate</span>
                 <span class="text-base-content/50 text-xs uppercase tracking-wide text-right">P&amp;I/mo</span>
-
                 <span class="text-base-content/70">Worst case</span>
                 <span id="modal-arm-rate-worst" class="text-right tabular-nums font-medium"></span>
                 <span id="modal-arm-pi-worst"   class="text-right tabular-nums font-medium"></span>
-
                 <span class="text-base-content/70">Flat (intro rate forever)</span>
                 <span id="modal-arm-rate-intro" class="text-right tabular-nums font-medium"></span>
                 <span id="modal-arm-pi-intro"   class="text-right tabular-nums font-medium"></span>
-
                 <span class="text-base-content/70">Best case</span>
                 <span id="modal-arm-rate-best" class="text-right tabular-nums font-medium"></span>
                 <span id="modal-arm-pi-best"   class="text-right tabular-nums font-medium"></span>
             </div>
         </div>
-
         <div class="modal-action mt-5">
-            <form method="dialog"><button class="btn btn-sm btn-primary">Close</button></form>
+            <form method="dialog">
+                <button class="btn btn-sm btn-primary">Close</button>
+            </form>
         </div>
     </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
 </dialog>

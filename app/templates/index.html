@@ -1,9 +1,7 @@
 {% extends "base.html" %}
-
 {% block title %}Mortgage Calculator{% endblock %}
-
 {% block content %}
-<style>
+    <style>
     body.edit-modal-open > div {
         filter: blur(4px);
         pointer-events: none;
@@ -30,97 +28,380 @@
         padding-top: 0.75rem;
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     }
-</style>
-<div class="m-2">
-    <button type="button"
-            class="md:hidden btn btn-primary btn-sm mb-3"
-            onclick="document.getElementById('add-loan-mobile-modal').showModal()">
-        + Add Loan
-    </button>
-    <div class="flex flex-col md:flex-row gap-2 md:items-start w-full">
-        <aside class="hidden md:block w-80 shrink-0 space-y-2">
-            <h2 class="text-xl font-bold my-4 mx-2">New Loan</h2>
-
-            <div id="pdf-drop-zone"
-                 class="mx-2 my-4 border-2 border-dashed border-success/50 bg-success/5 rounded-lg p-4 text-center cursor-pointer transition-colors select-none"
-                 title="Click or drop a PDF to import a Loan Estimate">
-                <input type="file" id="pdf-file-input" accept="application/pdf" class="hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-1.5 w-7 h-7 text-success/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M4.5 19.5h15A2.25 2.25 0 0021.75 17.25V6.75A2.25 2.25 0 0019.5 4.5H8.379a1.5 1.5 0 01-1.06-.44L5.56 2.31A1.5 1.5 0 004.5 1.875H3A2.25 2.25 0 00.75 4.125v15A2.25 2.25 0 003 21.375h18" />
-                </svg>
-                <p class="font-medium text-sm">Upload Loan Estimate</p>
-                <p class="text-xs text-base-content/50 mt-0.5">Drop a PDF or <span class="underline text-base-content/60">browse</span></p>
-                <p id="pdf-drop-status" class="text-xs mt-1.5 hidden"></p>
-            </div>
-
-            <div class="divider my-2 text-base-content/60">OR</div>
-
-            <form class="m-2 space-y-3" autocomplete="off">
+    </style>
+    <div class="m-2">
+        <button type="button"
+                class="md:hidden btn btn-primary btn-sm mb-3"
+                onclick="document.getElementById('add-loan-mobile-modal').showModal()">+ Add Loan</button>
+        <div class="flex flex-col md:flex-row gap-2 md:items-start w-full">
+            <aside class="hidden md:block w-80 shrink-0 space-y-2">
+                <h2 class="text-xl font-bold my-4 mx-2">New Loan</h2>
+                <div id="pdf-drop-zone"
+                     class="mx-2 my-4 border-2 border-dashed border-success/50 bg-success/5 rounded-lg p-4 text-center cursor-pointer transition-colors select-none"
+                     title="Click or drop a PDF to import a Loan Estimate">
+                    <input type="file"
+                           id="pdf-file-input"
+                           accept="application/pdf"
+                           class="hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="mx-auto mb-1.5 w-7 h-7 text-success/60"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M4.5 19.5h15A2.25 2.25 0 0021.75 17.25V6.75A2.25 2.25 0 0019.5 4.5H8.379a1.5 1.5 0 01-1.06-.44L5.56 2.31A1.5 1.5 0 004.5 1.875H3A2.25 2.25 0 00.75 4.125v15A2.25 2.25 0 003 21.375h18" />
+                    </svg>
+                    <p class="font-medium text-sm">Upload Loan Estimate</p>
+                    <p class="text-xs text-base-content/50 mt-0.5">
+                        Drop a PDF or <span class="underline text-base-content/60">browse</span>
+                    </p>
+                    <p id="pdf-drop-status" class="text-xs mt-1.5 hidden"></p>
+                </div>
+                <div class="divider my-2 text-base-content/60">OR</div>
+                <form class="m-2 space-y-3" autocomplete="off">
+                    <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                        <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                            <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                            <div class="flex gap-4" data-loan-type-toggle="">
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio"
+                                           name="loan_type"
+                                           value="fixed"
+                                           class="radio radio-xs"
+                                           checked>
+                                    <span class="text-sm">Fixed</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="loan_type" value="arm" class="radio radio-xs">
+                                    <span class="text-sm">ARM</span>
+                                </label>
+                            </div>
+                            <label for="name" class="label-text font-medium whitespace-nowrap">Name</label>
+                            <input type="text"
+                                   id="name"
+                                   name="name"
+                                   placeholder="Nickname for loan"
+                                   class="input input-bordered input-sm w-full">
+                            <label for="loan_amount" class="label-text font-medium whitespace-nowrap">Loan Amount</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="loan_amount"
+                                       name="loan_amount"
+                                       placeholder="0"
+                                       class="grow min-w-0">
+                            </label>
+                            <label for="term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <input type="number"
+                                       id="term_years"
+                                       name="term_years"
+                                       placeholder="30"
+                                       min="1"
+                                       max="50"
+                                       step="1"
+                                       value="30"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60">yrs</span>
+                            </label>
+                            <label for="interest_rate"
+                                   class="label-text font-medium whitespace-nowrap"
+                                   data-arm-intro-label>Interest</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <input type="text"
+                                       inputmode="decimal"
+                                       id="interest_rate"
+                                       name="interest_rate"
+                                       placeholder="0.000"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60">%</span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset id="arm_panel"
+                              class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden"
+                              data-arm-panel="">
+                        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                        <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                            <label for="arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
+                            <select id="arm_product" class="select select-bordered select-sm w-full">
+                                <option value="3/6">3/6mo</option>
+                                <option value="5/6">5/6mo</option>
+                                <option value="5/1">5/1y</option>
+                                <option value="7/6" selected>7/6mo</option>
+                                <option value="7/1">7/1y</option>
+                                <option value="10/6">10/6mo</option>
+                                <option value="10/1">10/1y</option>
+                                <option value="custom">Custom…</option>
+                            </select>
+                            <label for="arm_fixed_years"
+                                   class="label-text font-medium whitespace-nowrap hidden"
+                                   data-arm-custom>Fixed Years</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                                   data-arm-custom>
+                                <input type="number"
+                                       id="arm_fixed_years"
+                                       min="1"
+                                       max="20"
+                                       step="1"
+                                       value="7"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60">yrs</span>
+                            </label>
+                            <label for="arm_interval"
+                                   class="label-text font-medium whitespace-nowrap hidden"
+                                   data-arm-custom>Adjusts Every</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                                   data-arm-custom>
+                                <input type="number"
+                                       id="arm_interval"
+                                       min="1"
+                                       max="60"
+                                       step="1"
+                                       value="6"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60">mo</span>
+                            </label>
+                            <label for="arm_margin"
+                                   class="label-text font-medium whitespace-nowrap"
+                                   title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">
+                                Margin
+                            </label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <input type="text"
+                                       inputmode="decimal"
+                                       id="arm_margin"
+                                       placeholder="0.000"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60">%</span>
+                            </label>
+                            <span class="label-text font-medium whitespace-nowrap"
+                                  title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                            <div class="flex items-center gap-1 w-full">
+                                <input type="number"
+                                       inputmode="numeric"
+                                       min="0"
+                                       step="1"
+                                       id="arm_cap_initial"
+                                       placeholder="2"
+                                       class="input input-bordered input-sm min-w-0 w-full text-center"
+                                       title="Initial cap">
+                                <span class="text-base-content/40 text-sm">/</span>
+                                <input type="number"
+                                       inputmode="numeric"
+                                       min="0"
+                                       step="1"
+                                       id="arm_cap_periodic"
+                                       placeholder="2"
+                                       class="input input-bordered input-sm min-w-0 w-full text-center"
+                                       title="Periodic cap">
+                                <span class="text-base-content/40 text-sm">/</span>
+                                <input type="number"
+                                       inputmode="numeric"
+                                       min="0"
+                                       step="1"
+                                       id="arm_cap_lifetime"
+                                       placeholder="5"
+                                       class="input input-bordered input-sm min-w-0 w-full text-center"
+                                       title="Lifetime cap">
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                        <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                            <label for="points" class="label-text font-medium whitespace-nowrap">Points</label>
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="points"
+                                   name="points"
+                                   placeholder="0.000"
+                                   class="input input-bordered input-sm w-full">
+                            <label for="net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="net_credits"
+                                       name="net_credits"
+                                       placeholder="0"
+                                       class="grow min-w-0">
+                            </label>
+                            <label for="net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="net_fees"
+                                       name="net_fees"
+                                       placeholder="0"
+                                       class="grow min-w-0">
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                        <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                            <label for="prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="prop_tax"
+                                       name="prop_tax"
+                                       placeholder="0"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60 text-xs">/mo</span>
+                            </label>
+                            <label for="hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="hoa"
+                                       name="hoa"
+                                       placeholder="0"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60 text-xs">/mo</span>
+                            </label>
+                            <label for="insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                            <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                                <span class="text-base-content/60">$</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       id="insurance"
+                                       name="insurance"
+                                       placeholder="0"
+                                       class="grow min-w-0">
+                                <span class="text-base-content/60 text-xs">/yr</span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="mx-2 mt-4 flex gap-2">
+                        <button type="button" id="add-loan-btn" class="btn btn-sm btn-primary flex-1">Add</button>
+                        <button type="button"
+                                id="clear-form-btn"
+                                class="btn btn-sm btn-ghost flex-none">Clear</button>
+                    </div>
+                </form>
+            </aside>
+            <section class="flex-1 min-w-0 w-full mb-2 space-y-2">
+                <div class="flex items-center justify-between my-4 mx-2 gap-2 flex-wrap">
+                    <h2 class="text-xl font-bold">Loans</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra table-sm w-max min-w-full">
+                        <thead>
+                            <tr>
+                                <th class="p-2 whitespace-nowrap cursor-pointer select-none"
+                                    data-sort-key="name">Name</th>
+                                <th class="p-2 text-right cursor-pointer select-none"
+                                    data-sort-key="loan_amount">Loan Amount</th>
+                                <th class="p-2 text-right cursor-pointer select-none"
+                                    data-sort-key="interest">Interest</th>
+                                <th class="p-2 text-right cursor-pointer select-none"
+                                    data-sort-key="term_years">Term</th>
+                                <th class="p-2 text-right cursor-pointer select-none" data-sort-key="pi">P&amp;I / mo</th>
+                                <th class="p-2 text-right cursor-pointer select-none"
+                                    data-sort-key="monthly_total">Total / mo</th>
+                                <th class="p-2 text-right cursor-pointer select-none"
+                                    data-sort-key="closing">Closing</th>
+                                <th class="p-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="loans-tbody">
+                            <tr id="loans-empty">
+                                <td colspan="8" class="text-center text-base-content/60 p-4">
+                                    No loans yet — add one manually or upload a loan estimate.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+    {% include "_preview_panel.html" %}
+    <dialog id="add-loan-mobile-modal" class="modal">
+        <div class="modal-box max-w-sm loan-form-modal">
+            <h3 class="font-bold text-lg mb-4 shrink-0">Add Loan</h3>
+            <div class="loan-form-modal__body space-y-3">
                 <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                     <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
                     <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
                         <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
-                        <div class="flex gap-4" data-loan-type-toggle="">
+                        <div class="flex gap-4" data-loan-type-toggle="mob_">
                             <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="loan_type" value="fixed" class="radio radio-xs" checked>
+                                <input type="radio"
+                                       name="mob_loan_type"
+                                       value="fixed"
+                                       class="radio radio-xs"
+                                       checked>
                                 <span class="text-sm">Fixed</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="loan_type" value="arm" class="radio radio-xs">
+                                <input type="radio" name="mob_loan_type" value="arm" class="radio radio-xs">
                                 <span class="text-sm">ARM</span>
                             </label>
                         </div>
-
-                        <label for="name" class="label-text font-medium whitespace-nowrap">Name</label>
+                        <label for="mob_name" class="label-text font-medium whitespace-nowrap">Name</label>
                         <input type="text"
-                               id="name"
-                               name="name"
+                               id="mob_name"
+                               name="mob_name"
                                placeholder="Nickname for loan"
-                               class="input input-bordered input-sm w-full">
-
-                        <label for="loan_amount" class="label-text font-medium whitespace-nowrap">Loan Amount</label>
+                               class="input input-bordered input-sm w-full"
+                               autocomplete="off">
+                        <label for="mob_loan_amount"
+                               class="label-text font-medium whitespace-nowrap">Loan Amount</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
                                    inputmode="numeric"
-                                   id="loan_amount"
-                                   name="loan_amount"
+                                   id="mob_loan_amount"
+                                   name="mob_loan_amount"
                                    placeholder="0"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                         </label>
-
-                        <label for="term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                        <label for="mob_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <input type="number"
-                                   id="term_years"
-                                   name="term_years"
+                                   id="mob_term_years"
+                                   name="mob_term_years"
                                    placeholder="30"
                                    min="1"
                                    max="50"
                                    step="1"
                                    value="30"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60">yrs</span>
                         </label>
-
-                        <label for="interest_rate" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
+                        <label for="mob_interest_rate"
+                               class="label-text font-medium whitespace-nowrap"
+                               data-arm-intro-label>Interest</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <input type="text"
                                    inputmode="decimal"
-                                   id="interest_rate"
-                                   name="interest_rate"
+                                   id="mob_interest_rate"
+                                   name="mob_interest_rate"
                                    placeholder="0.000"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60">%</span>
                         </label>
                     </div>
                 </fieldset>
-
-                <fieldset id="arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="">
+                <fieldset id="mob_arm_panel"
+                          class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden"
+                          data-arm-panel="mob_">
                     <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
                     <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                        <label for="arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
-                        <select id="arm_product" class="select select-bordered select-sm w-full">
+                        <label for="mob_arm_product"
+                               class="label-text font-medium whitespace-nowrap">Product</label>
+                        <select id="mob_arm_product" class="select select-bordered select-sm w-full">
                             <option value="3/6">3/6mo</option>
                             <option value="5/6">5/6mo</option>
                             <option value="5/1">5/1y</option>
@@ -130,612 +411,689 @@
                             <option value="10/1">10/1y</option>
                             <option value="custom">Custom…</option>
                         </select>
-
-                        <label for="arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
-                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                            <input type="number" id="arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0">
+                        <label for="mob_arm_fixed_years"
+                               class="label-text font-medium whitespace-nowrap hidden"
+                               data-arm-custom>Fixed Years</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                               data-arm-custom>
+                            <input type="number"
+                                   id="mob_arm_fixed_years"
+                                   min="1"
+                                   max="20"
+                                   step="1"
+                                   value="7"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60">yrs</span>
                         </label>
-
-                        <label for="arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
-                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                            <input type="number" id="arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0">
+                        <label for="mob_arm_interval"
+                               class="label-text font-medium whitespace-nowrap hidden"
+                               data-arm-custom>Adjusts Every</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                               data-arm-custom>
+                            <input type="number"
+                                   id="mob_arm_interval"
+                                   min="1"
+                                   max="60"
+                                   step="1"
+                                   value="6"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60">mo</span>
                         </label>
-
-                        <label for="arm_margin"
+                        <label for="mob_arm_margin"
                                class="label-text font-medium whitespace-nowrap"
-                               title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
+                               title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">
+                            Margin
+                        </label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                            <input type="text" inputmode="decimal" id="arm_margin" placeholder="0.000" class="grow min-w-0">
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="mob_arm_margin"
+                                   placeholder="0.000"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60">%</span>
                         </label>
-
-                        <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                        <span class="label-text font-medium whitespace-nowrap"
+                              title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
                         <div class="flex items-center gap-1 w-full">
-                            <input type="number" inputmode="numeric" min="0" step="1" id="arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap">
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="mob_arm_cap_initial"
+                                   placeholder="2"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Initial cap"
+                                   autocomplete="off">
                             <span class="text-base-content/40 text-sm">/</span>
-                            <input type="number" inputmode="numeric" min="0" step="1" id="arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap">
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="mob_arm_cap_periodic"
+                                   placeholder="2"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Periodic cap"
+                                   autocomplete="off">
                             <span class="text-base-content/40 text-sm">/</span>
-                            <input type="number" inputmode="numeric" min="0" step="1" id="arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap">
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="mob_arm_cap_lifetime"
+                                   placeholder="5"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Lifetime cap"
+                                   autocomplete="off">
                         </div>
-
                     </div>
                 </fieldset>
-
                 <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                     <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
                     <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                        <label for="points" class="label-text font-medium whitespace-nowrap">Points</label>
+                        <label for="mob_points" class="label-text font-medium whitespace-nowrap">Points</label>
                         <input type="text"
                                inputmode="decimal"
-                               id="points"
-                               name="points"
+                               id="mob_points"
+                               name="mob_points"
                                placeholder="0.000"
-                               class="input input-bordered input-sm w-full">
-
-                        <label for="net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                               class="input input-bordered input-sm w-full"
+                               autocomplete="off">
+                        <label for="mob_net_credits"
+                               class="label-text font-medium whitespace-nowrap">Net Credits</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
                                    inputmode="numeric"
-                                   id="net_credits"
-                                   name="net_credits"
+                                   id="mob_net_credits"
+                                   name="mob_net_credits"
                                    placeholder="0"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                         </label>
-
-                        <label for="net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                        <label for="mob_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
                                    inputmode="numeric"
-                                   id="net_fees"
-                                   name="net_fees"
+                                   id="mob_net_fees"
+                                   name="mob_net_fees"
                                    placeholder="0"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                         </label>
                     </div>
                 </fieldset>
-
                 <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
                     <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
                     <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                        <label for="prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                        <label for="mob_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
                                    inputmode="numeric"
-                                   id="prop_tax"
-                                   name="prop_tax"
+                                   id="mob_prop_tax"
+                                   name="mob_prop_tax"
                                    placeholder="0"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60 text-xs">/mo</span>
                         </label>
-
-                        <label for="hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                        <label for="mob_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
                                    inputmode="numeric"
-                                   id="hoa"
-                                   name="hoa"
+                                   id="mob_hoa"
+                                   name="mob_hoa"
                                    placeholder="0"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60 text-xs">/mo</span>
                         </label>
-
-                        <label for="insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                        <label for="mob_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
                         <label class="input input-bordered input-sm flex items-center gap-1 w-full">
                             <span class="text-base-content/60">$</span>
                             <input type="text"
                                    inputmode="numeric"
-                                   id="insurance"
-                                   name="insurance"
+                                   id="mob_insurance"
+                                   name="mob_insurance"
                                    placeholder="0"
-                                   class="grow min-w-0">
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                             <span class="text-base-content/60 text-xs">/yr</span>
                         </label>
                     </div>
                 </fieldset>
-
-                <div class="mx-2 mt-4 flex gap-2">
-                    <button type="button" id="add-loan-btn" class="btn btn-sm btn-primary flex-1">Add</button>
-                    <button type="button" id="clear-form-btn" class="btn btn-sm btn-ghost flex-none">Clear</button>
-                </div>
-            </form>
-        </aside>
-
-        <section class="flex-1 min-w-0 w-full mb-2 space-y-2">
-            <div class="flex items-center justify-between my-4 mx-2 gap-2 flex-wrap">
-                <h2 class="text-xl font-bold">Loans</h2>
             </div>
-
-            <div class="overflow-x-auto">
-                <table class="table table-zebra table-sm w-max min-w-full">
-                    <thead>
-                        <tr>
-                            <th class="p-2 whitespace-nowrap cursor-pointer select-none" data-sort-key="name">Name </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="loan_amount">Loan Amount </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="interest">Interest </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="term_years">Term </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="pi">P&amp;I / mo </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="monthly_total">Total / mo </th>
-                            <th class="p-2 text-right cursor-pointer select-none" data-sort-key="closing">Closing </th>
-                            <th class="p-2"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="loans-tbody">
-                        <tr id="loans-empty">
-                            <td colspan="8" class="text-center text-base-content/60 p-4">
-                                No loans yet — add one manually or upload a loan estimate.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="modal-action mt-4 loan-form-modal__actions">
+                <button type="button"
+                        id="mob-add-loan-btn"
+                        class="btn btn-sm btn-primary flex-1">Add</button>
+                <button type="button"
+                        id="mob-clear-form-btn"
+                        class="btn btn-sm btn-ghost flex-none">Clear</button>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-ghost">Cancel</button>
+                </form>
             </div>
-        </section>
-    </div>
-</div>
-
-{% include "_preview_panel.html" %}
-
-<dialog id="add-loan-mobile-modal" class="modal">
-    <div class="modal-box max-w-sm loan-form-modal">
-        <h3 class="font-bold text-lg mb-4 shrink-0">Add Loan</h3>
-        <div class="loan-form-modal__body space-y-3">
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
-                    <div class="flex gap-4" data-loan-type-toggle="mob_">
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="mob_loan_type" value="fixed" class="radio radio-xs" checked>
-                            <span class="text-sm">Fixed</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="mob_loan_type" value="arm" class="radio radio-xs">
-                            <span class="text-sm">ARM</span>
-                        </label>
-                    </div>
-
-                    <label for="mob_name" class="label-text font-medium whitespace-nowrap">Name</label>
-                    <input type="text" id="mob_name" name="mob_name" placeholder="Nickname for loan" class="input input-bordered input-sm w-full" autocomplete="off">
-
-                    <label for="mob_loan_amount" class="label-text font-medium whitespace-nowrap">Loan Amount</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="mob_loan_amount" name="mob_loan_amount" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-
-                    <label for="mob_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="mob_term_years" name="mob_term_years" placeholder="30" min="1" max="50" step="1" value="30" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">yrs</span>
-                    </label>
-
-                    <label for="mob_interest_rate" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="text" inputmode="decimal" id="mob_interest_rate" name="mob_interest_rate" placeholder="0.000" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset id="mob_arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="mob_">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="mob_arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
-                    <select id="mob_arm_product" class="select select-bordered select-sm w-full">
-                        <option value="3/6">3/6mo</option>
-                        <option value="5/6">5/6mo</option>
-                        <option value="5/1">5/1y</option>
-                        <option value="7/6" selected>7/6mo</option>
-                        <option value="7/1">7/1y</option>
-                        <option value="10/6">10/6mo</option>
-                        <option value="10/1">10/1y</option>
-                        <option value="custom">Custom…</option>
-                    </select>
-
-                    <label for="mob_arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                        <input type="number" id="mob_arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">yrs</span>
-                    </label>
-
-                    <label for="mob_arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                        <input type="number" id="mob_arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">mo</span>
-                    </label>
-
-                    <label for="mob_arm_margin"
-                           class="label-text font-medium whitespace-nowrap"
-                           title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="text" inputmode="decimal" id="mob_arm_margin" placeholder="0.000" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-
-                    <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
-                    <div class="flex items-center gap-1 w-full">
-                        <input type="number" inputmode="numeric" min="0" step="1" id="mob_arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap" autocomplete="off">
-                        <span class="text-base-content/40 text-sm">/</span>
-                        <input type="number" inputmode="numeric" min="0" step="1" id="mob_arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap" autocomplete="off">
-                        <span class="text-base-content/40 text-sm">/</span>
-                        <input type="number" inputmode="numeric" min="0" step="1" id="mob_arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap" autocomplete="off">
-                    </div>
-
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="mob_points" class="label-text font-medium whitespace-nowrap">Points</label>
-                    <input type="text" inputmode="decimal" id="mob_points" name="mob_points" placeholder="0.000" class="input input-bordered input-sm w-full" autocomplete="off">
-
-                    <label for="mob_net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="mob_net_credits" name="mob_net_credits" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-
-                    <label for="mob_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="mob_net_fees" name="mob_net_fees" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="mob_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="mob_prop_tax" name="mob_prop_tax" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="mob_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="mob_hoa" name="mob_hoa" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="mob_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="mob_insurance" name="mob_insurance" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/yr</span>
-                    </label>
-                </div>
-            </fieldset>
         </div>
-
-        <div class="modal-action mt-4 loan-form-modal__actions">
-            <button type="button" id="mob-add-loan-btn" class="btn btn-sm btn-primary flex-1">Add</button>
-            <button type="button" id="mob-clear-form-btn" class="btn btn-sm btn-ghost flex-none">Clear</button>
-            <form method="dialog"><button class="btn btn-sm btn-ghost">Cancel</button></form>
-        </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-
-<dialog id="edit-loan-modal" class="modal">
-    <div class="modal-box max-w-sm loan-form-modal">
-        <h3 class="font-bold text-lg mb-4 shrink-0">Edit Loan</h3>
-        <input type="hidden" id="edit_id">
-
-        <div class="loan-form-modal__body space-y-3">
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
-                    <div class="flex gap-4" data-loan-type-toggle="edit_">
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="edit_loan_type" value="fixed" class="radio radio-xs" checked>
-                            <span class="text-sm">Fixed</span>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    <dialog id="edit-loan-modal" class="modal">
+        <div class="modal-box max-w-sm loan-form-modal">
+            <h3 class="font-bold text-lg mb-4 shrink-0">Edit Loan</h3>
+            <input type="hidden" id="edit_id">
+            <div class="loan-form-modal__body space-y-3">
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                        <div class="flex gap-4" data-loan-type-toggle="edit_">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio"
+                                       name="edit_loan_type"
+                                       value="fixed"
+                                       class="radio radio-xs"
+                                       checked>
+                                <span class="text-sm">Fixed</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="edit_loan_type" value="arm" class="radio radio-xs">
+                                <span class="text-sm">ARM</span>
+                            </label>
+                        </div>
+                        <label for="edit_name" class="label-text font-medium whitespace-nowrap">Name</label>
+                        <input type="text"
+                               id="edit_name"
+                               class="input input-bordered input-sm w-full"
+                               autocomplete="off">
+                        <label for="edit_loan_amount"
+                               class="label-text font-medium whitespace-nowrap">Loan amount</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="edit_loan_amount"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                         </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="edit_loan_type" value="arm" class="radio radio-xs">
-                            <span class="text-sm">ARM</span>
+                        <label for="edit_term_years"
+                               class="label-text font-medium whitespace-nowrap">Term</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="edit_term_years"
+                                   min="1"
+                                   max="50"
+                                   step="1"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">yrs</span>
+                        </label>
+                        <label for="edit_interest"
+                               class="label-text font-medium whitespace-nowrap"
+                               data-arm-intro-label>Interest</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="edit_interest"
+                                   placeholder="0.000"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">%</span>
                         </label>
                     </div>
-
-                    <label for="edit_name" class="label-text font-medium whitespace-nowrap">Name</label>
-                    <input type="text" id="edit_name" class="input input-bordered input-sm w-full" autocomplete="off">
-
-                    <label for="edit_loan_amount" class="label-text font-medium whitespace-nowrap">Loan amount</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="edit_loan_amount" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-
-                    <label for="edit_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="edit_term_years" min="1" max="50" step="1" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">yrs</span>
-                    </label>
-
-                    <label for="edit_interest" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="text" inputmode="decimal" id="edit_interest" placeholder="0.000" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset id="edit_arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="edit_">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="edit_arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
-                    <select id="edit_arm_product" class="select select-bordered select-sm w-full">
-                        <option value="3/6">3/6mo</option>
-                        <option value="5/6">5/6mo</option>
-                        <option value="5/1">5/1y</option>
-                        <option value="7/6" selected>7/6mo</option>
-                        <option value="7/1">7/1y</option>
-                        <option value="10/6">10/6mo</option>
-                        <option value="10/1">10/1y</option>
-                        <option value="custom">Custom…</option>
-                    </select>
-
-                    <label for="edit_arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                        <input type="number" id="edit_arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">yrs</span>
-                    </label>
-
-                    <label for="edit_arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                        <input type="number" id="edit_arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">mo</span>
-                    </label>
-
-                    <label for="edit_arm_margin"
-                           class="label-text font-medium whitespace-nowrap"
-                           title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="text" inputmode="decimal" id="edit_arm_margin" placeholder="0.000" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-
-                    <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
-                    <div class="flex items-center gap-1 w-full">
-                        <input type="number" inputmode="numeric" min="0" step="1" id="edit_arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap" autocomplete="off">
-                        <span class="text-base-content/40 text-sm">/</span>
-                        <input type="number" inputmode="numeric" min="0" step="1" id="edit_arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap" autocomplete="off">
-                        <span class="text-base-content/40 text-sm">/</span>
-                        <input type="number" inputmode="numeric" min="0" step="1" id="edit_arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap" autocomplete="off">
-                    </div>
-
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="edit_points" class="label-text font-medium whitespace-nowrap">Points</label>
-                    <input type="text" inputmode="decimal" id="edit_points" placeholder="0.000" class="input input-bordered input-sm w-full" autocomplete="off">
-
-                    <label for="edit_net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="edit_net_credits" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-
-                    <label for="edit_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="edit_net_fees" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="edit_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="edit_prop_tax" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="edit_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="edit_hoa" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="edit_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="edit_insurance" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/yr</span>
-                    </label>
-                </div>
-            </fieldset>
-        </div>
-
-        <div class="modal-action mt-4 loan-form-modal__actions">
-            <button id="edit-save-btn" class="btn btn-primary btn-sm">Save</button>
-            <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
-        </div>
-    </div>
-
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-<dialog id="confirm-delete-modal" class="modal">
-    <div class="modal-box max-w-xs">
-        <h3 class="font-bold text-lg mb-1">Remove loan?</h3>
-        <p class="text-base-content/70 text-sm mb-4">
-            <span id="confirm-delete-name" class="font-semibold text-base-content"></span> will be permanently removed.
-        </p>
-        <div class="modal-action mt-0">
-            <button id="confirm-delete-btn" class="btn btn-error btn-sm">Remove</button>
-            <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
-        </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-
-<dialog id="pdf-import-modal" class="modal">
-    <div class="modal-box max-w-sm loan-form-modal">
-        <h3 class="font-bold text-lg mb-1 shrink-0">Review PDF Import</h3>
-        <p class="text-xs text-base-content/50 mb-4 shrink-0">Values extracted from the PDF — review and edit before adding.</p>
-
-        <div class="loan-form-modal__body space-y-3">
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
-                    <div class="flex gap-4" data-loan-type-toggle="pdf_">
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="pdf_loan_type" value="fixed" class="radio radio-xs" checked>
-                            <span class="text-sm">Fixed</span>
+                </fieldset>
+                <fieldset id="edit_arm_panel"
+                          class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden"
+                          data-arm-panel="edit_">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="edit_arm_product"
+                               class="label-text font-medium whitespace-nowrap">Product</label>
+                        <select id="edit_arm_product" class="select select-bordered select-sm w-full">
+                            <option value="3/6">3/6mo</option>
+                            <option value="5/6">5/6mo</option>
+                            <option value="5/1">5/1y</option>
+                            <option value="7/6" selected>7/6mo</option>
+                            <option value="7/1">7/1y</option>
+                            <option value="10/6">10/6mo</option>
+                            <option value="10/1">10/1y</option>
+                            <option value="custom">Custom…</option>
+                        </select>
+                        <label for="edit_arm_fixed_years"
+                               class="label-text font-medium whitespace-nowrap hidden"
+                               data-arm-custom>Fixed Years</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                               data-arm-custom>
+                            <input type="number"
+                                   id="edit_arm_fixed_years"
+                                   min="1"
+                                   max="20"
+                                   step="1"
+                                   value="7"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">yrs</span>
                         </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" name="pdf_loan_type" value="arm" class="radio radio-xs">
-                            <span class="text-sm">ARM</span>
+                        <label for="edit_arm_interval"
+                               class="label-text font-medium whitespace-nowrap hidden"
+                               data-arm-custom>Adjusts Every</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                               data-arm-custom>
+                            <input type="number"
+                                   id="edit_arm_interval"
+                                   min="1"
+                                   max="60"
+                                   step="1"
+                                   value="6"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">mo</span>
+                        </label>
+                        <label for="edit_arm_margin"
+                               class="label-text font-medium whitespace-nowrap"
+                               title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">
+                            Margin
+                        </label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="edit_arm_margin"
+                                   placeholder="0.000"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">%</span>
+                        </label>
+                        <span class="label-text font-medium whitespace-nowrap"
+                              title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                        <div class="flex items-center gap-1 w-full">
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="edit_arm_cap_initial"
+                                   placeholder="2"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Initial cap"
+                                   autocomplete="off">
+                            <span class="text-base-content/40 text-sm">/</span>
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="edit_arm_cap_periodic"
+                                   placeholder="2"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Periodic cap"
+                                   autocomplete="off">
+                            <span class="text-base-content/40 text-sm">/</span>
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="edit_arm_cap_lifetime"
+                                   placeholder="5"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Lifetime cap"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="edit_points" class="label-text font-medium whitespace-nowrap">Points</label>
+                        <input type="text"
+                               inputmode="decimal"
+                               id="edit_points"
+                               placeholder="0.000"
+                               class="input input-bordered input-sm w-full"
+                               autocomplete="off">
+                        <label for="edit_net_credits"
+                               class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="edit_net_credits"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                        </label>
+                        <label for="edit_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="edit_net_fees"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
                         </label>
                     </div>
-
-                    <label for="pdf_name" class="label-text font-medium whitespace-nowrap">Name</label>
-                    <input type="text" id="pdf_name" class="input input-bordered input-sm w-full" autocomplete="off">
-
-                    <label for="pdf_loan_amount" class="label-text font-medium whitespace-nowrap">Loan amount</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="pdf_loan_amount" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-
-                    <label for="pdf_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="pdf_term_years" min="1" max="50" step="1" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">yrs</span>
-                    </label>
-
-                    <label for="pdf_interest" class="label-text font-medium whitespace-nowrap" data-arm-intro-label>Interest</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="text" inputmode="decimal" id="pdf_interest" placeholder="0.000" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset id="pdf_arm_panel" class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden" data-arm-panel="pdf_">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="pdf_arm_product" class="label-text font-medium whitespace-nowrap">Product</label>
-                    <select id="pdf_arm_product" class="select select-bordered select-sm w-full">
-                        <option value="3/6">3/6mo</option>
-                        <option value="5/6">5/6mo</option>
-                        <option value="5/1">5/1y</option>
-                        <option value="7/6" selected>7/6mo</option>
-                        <option value="7/1">7/1y</option>
-                        <option value="10/6">10/6mo</option>
-                        <option value="10/1">10/1y</option>
-                        <option value="custom">Custom…</option>
-                    </select>
-
-                    <label for="pdf_arm_fixed_years" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Fixed Years</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                        <input type="number" id="pdf_arm_fixed_years" min="1" max="20" step="1" value="7" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">yrs</span>
-                    </label>
-
-                    <label for="pdf_arm_interval" class="label-text font-medium whitespace-nowrap hidden" data-arm-custom>Adjusts Every</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden" data-arm-custom>
-                        <input type="number" id="pdf_arm_interval" min="1" max="60" step="1" value="6" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">mo</span>
-                    </label>
-
-                    <label for="pdf_arm_margin"
-                           class="label-text font-medium whitespace-nowrap"
-                           title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">Margin</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="text" inputmode="decimal" id="pdf_arm_margin" placeholder="0.000" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-
-                    <span class="label-text font-medium whitespace-nowrap" title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
-                    <div class="flex items-center gap-1 w-full">
-                        <input type="number" inputmode="numeric" min="0" step="1" id="pdf_arm_cap_initial" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Initial cap" autocomplete="off">
-                        <span class="text-base-content/40 text-sm">/</span>
-                        <input type="number" inputmode="numeric" min="0" step="1" id="pdf_arm_cap_periodic" placeholder="2" class="input input-bordered input-sm min-w-0 w-full text-center" title="Periodic cap" autocomplete="off">
-                        <span class="text-base-content/40 text-sm">/</span>
-                        <input type="number" inputmode="numeric" min="0" step="1" id="pdf_arm_cap_lifetime" placeholder="5" class="input input-bordered input-sm min-w-0 w-full text-center" title="Lifetime cap" autocomplete="off">
+                </fieldset>
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="edit_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="edit_prop_tax"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+                        <label for="edit_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="edit_hoa"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+                        <label for="edit_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="edit_insurance"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60 text-xs">/yr</span>
+                        </label>
                     </div>
-
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="pdf_points" class="label-text font-medium whitespace-nowrap">Points</label>
-                    <input type="text" inputmode="decimal" id="pdf_points" placeholder="0.000" class="input input-bordered input-sm w-full" autocomplete="off">
-
-                    <label for="pdf_net_credits" class="label-text font-medium whitespace-nowrap">Net Credits</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="pdf_net_credits" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-
-                    <label for="pdf_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="pdf_net_fees" placeholder="0" class="grow min-w-0" autocomplete="off">
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="pdf_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="pdf_prop_tax" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="pdf_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="pdf_hoa" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="pdf_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="pdf_insurance" placeholder="0" class="grow min-w-0" autocomplete="off">
-                        <span class="text-base-content/60 text-xs">/yr</span>
-                    </label>
-                </div>
-            </fieldset>
+                </fieldset>
+            </div>
+            <div class="modal-action mt-4 loan-form-modal__actions">
+                <button id="edit-save-btn" class="btn btn-primary btn-sm">Save</button>
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-sm">Cancel</button>
+                </form>
+            </div>
         </div>
-
-        <div class="modal-action mt-4 loan-form-modal__actions">
-            <button id="pdf-import-confirm-btn" class="btn btn-primary btn-sm">Add Loan</button>
-            <form method="dialog"><button class="btn btn-ghost btn-sm">Cancel</button></form>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    <dialog id="confirm-delete-modal" class="modal">
+        <div class="modal-box max-w-xs">
+            <h3 class="font-bold text-lg mb-1">Remove loan?</h3>
+            <p class="text-base-content/70 text-sm mb-4">
+                <span id="confirm-delete-name" class="font-semibold text-base-content"></span> will be permanently removed.
+            </p>
+            <div class="modal-action mt-0">
+                <button id="confirm-delete-btn" class="btn btn-error btn-sm">Remove</button>
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-sm">Cancel</button>
+                </form>
+            </div>
         </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    <dialog id="pdf-import-modal" class="modal">
+        <div class="modal-box max-w-sm loan-form-modal">
+            <h3 class="font-bold text-lg mb-1 shrink-0">Review PDF Import</h3>
+            <p class="text-xs text-base-content/50 mb-4 shrink-0">
+                Values extracted from the PDF — review and edit before adding.
+            </p>
+            <div class="loan-form-modal__body space-y-3">
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Loan Terms</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <span class="label-text font-medium whitespace-nowrap">Loan Type</span>
+                        <div class="flex gap-4" data-loan-type-toggle="pdf_">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio"
+                                       name="pdf_loan_type"
+                                       value="fixed"
+                                       class="radio radio-xs"
+                                       checked>
+                                <span class="text-sm">Fixed</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="pdf_loan_type" value="arm" class="radio radio-xs">
+                                <span class="text-sm">ARM</span>
+                            </label>
+                        </div>
+                        <label for="pdf_name" class="label-text font-medium whitespace-nowrap">Name</label>
+                        <input type="text"
+                               id="pdf_name"
+                               class="input input-bordered input-sm w-full"
+                               autocomplete="off">
+                        <label for="pdf_loan_amount"
+                               class="label-text font-medium whitespace-nowrap">Loan amount</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="pdf_loan_amount"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                        </label>
+                        <label for="pdf_term_years" class="label-text font-medium whitespace-nowrap">Term</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="pdf_term_years"
+                                   min="1"
+                                   max="50"
+                                   step="1"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">yrs</span>
+                        </label>
+                        <label for="pdf_interest"
+                               class="label-text font-medium whitespace-nowrap"
+                               data-arm-intro-label>Interest</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="pdf_interest"
+                                   placeholder="0.000"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">%</span>
+                        </label>
+                    </div>
+                </fieldset>
+                <fieldset id="pdf_arm_panel"
+                          class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1 hidden"
+                          data-arm-panel="pdf_">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">ARM Details</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="pdf_arm_product"
+                               class="label-text font-medium whitespace-nowrap">Product</label>
+                        <select id="pdf_arm_product" class="select select-bordered select-sm w-full">
+                            <option value="3/6">3/6mo</option>
+                            <option value="5/6">5/6mo</option>
+                            <option value="5/1">5/1y</option>
+                            <option value="7/6" selected>7/6mo</option>
+                            <option value="7/1">7/1y</option>
+                            <option value="10/6">10/6mo</option>
+                            <option value="10/1">10/1y</option>
+                            <option value="custom">Custom…</option>
+                        </select>
+                        <label for="pdf_arm_fixed_years"
+                               class="label-text font-medium whitespace-nowrap hidden"
+                               data-arm-custom>Fixed Years</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                               data-arm-custom>
+                            <input type="number"
+                                   id="pdf_arm_fixed_years"
+                                   min="1"
+                                   max="20"
+                                   step="1"
+                                   value="7"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">yrs</span>
+                        </label>
+                        <label for="pdf_arm_interval"
+                               class="label-text font-medium whitespace-nowrap hidden"
+                               data-arm-custom>Adjusts Every</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full hidden"
+                               data-arm-custom>
+                            <input type="number"
+                                   id="pdf_arm_interval"
+                                   min="1"
+                                   max="60"
+                                   step="1"
+                                   value="6"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">mo</span>
+                        </label>
+                        <label for="pdf_arm_margin"
+                               class="label-text font-medium whitespace-nowrap"
+                               title="Lender's fixed spread used as the rate floor; your rate cannot adjust below this in the best-case scenario.">
+                            Margin
+                        </label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="text"
+                                   inputmode="decimal"
+                                   id="pdf_arm_margin"
+                                   placeholder="0.000"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60">%</span>
+                        </label>
+                        <span class="label-text font-medium whitespace-nowrap"
+                              title="Initial / Periodic / Lifetime caps (CFPB notation, e.g. 2/2/5)">Caps</span>
+                        <div class="flex items-center gap-1 w-full">
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="pdf_arm_cap_initial"
+                                   placeholder="2"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Initial cap"
+                                   autocomplete="off">
+                            <span class="text-base-content/40 text-sm">/</span>
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="pdf_arm_cap_periodic"
+                                   placeholder="2"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Periodic cap"
+                                   autocomplete="off">
+                            <span class="text-base-content/40 text-sm">/</span>
+                            <input type="number"
+                                   inputmode="numeric"
+                                   min="0"
+                                   step="1"
+                                   id="pdf_arm_cap_lifetime"
+                                   placeholder="5"
+                                   class="input input-bordered input-sm min-w-0 w-full text-center"
+                                   title="Lifetime cap"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Closing Costs</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="pdf_points" class="label-text font-medium whitespace-nowrap">Points</label>
+                        <input type="text"
+                               inputmode="decimal"
+                               id="pdf_points"
+                               placeholder="0.000"
+                               class="input input-bordered input-sm w-full"
+                               autocomplete="off">
+                        <label for="pdf_net_credits"
+                               class="label-text font-medium whitespace-nowrap">Net Credits</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="pdf_net_credits"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                        </label>
+                        <label for="pdf_net_fees" class="label-text font-medium whitespace-nowrap">Net Fees</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="pdf_net_fees"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                        </label>
+                    </div>
+                </fieldset>
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Ownership Expenses</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="pdf_prop_tax" class="label-text font-medium whitespace-nowrap">Property Tax</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="pdf_prop_tax"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+                        <label for="pdf_hoa" class="label-text font-medium whitespace-nowrap">HOA</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="pdf_hoa"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+                        <label for="pdf_insurance" class="label-text font-medium whitespace-nowrap">Insurance</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="pdf_insurance"
+                                   placeholder="0"
+                                   class="grow min-w-0"
+                                   autocomplete="off">
+                            <span class="text-base-content/60 text-xs">/yr</span>
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="modal-action mt-4 loan-form-modal__actions">
+                <button id="pdf-import-confirm-btn" class="btn btn-primary btn-sm">Add Loan</button>
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-sm">Cancel</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 {% endblock %}
-
 {% block scripts %}
-<script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
-<script>
+    <script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
+    <script>
     // ── Dollar inputs: comma formatting as-you-type ───────────────────────────
     // applyCommaFormat / fmtDollarField defined in mortgage-common.js
     document.querySelectorAll('input[inputmode="numeric"]').forEach(function(el) {
@@ -1719,5 +2077,5 @@
 
     document.getElementById('mob-add-loan-btn').addEventListener('click', addLoanMobile);
     document.getElementById('mob-clear-form-btn').addEventListener('click', clearMobileForm);
-</script>
+    </script>
 {% endblock %}

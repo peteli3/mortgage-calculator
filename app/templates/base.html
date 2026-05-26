@@ -1,79 +1,89 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>{% block title %}Mortgage Calculator{% endblock %}</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/favicon.ico') }}">
-    <link href="{{ url_for('static', path='/output.css') }}" rel="stylesheet">
-</head>
-<body class="overflow-x-hidden">
-    <div class="drawer">
-        <input id="nav-drawer" type="checkbox" class="drawer-toggle" />
-        <div class="drawer-content flex flex-col h-screen justify-between">
-            <div class="navbar bg-base-200">
-                <div class="container mx-auto px-4 flex items-center gap-2">
-                    <!-- Hamburger: mobile only -->
-                    <label for="nav-drawer" class="btn btn-ghost btn-sm md:hidden" aria-label="Open menu">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </label>
-                    <h1 class="text-lg md:text-xl font-bold whitespace-nowrap">Mortgage Calculator</h1>
-                    <!-- Inline nav: desktop only -->
-                    <nav class="hidden md:flex items-center gap-1 mr-auto ml-2">
-                        <a href="/"
-                           class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
-                            Home
-                        </a>
-                        <a href="/amortization"
-                           class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path.startswith('/amortization') %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
-                            Amortization
-                        </a>
-                        <a href="/buy-vs-rent"
-                           class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
-                            Buy vs Rent
-                        </a>
-                    </nav>
+    <head>
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <title>
+            {% block title %}Mortgage Calculator{% endblock %}
+        </title>
+        <link rel="icon"
+              type="image/x-icon"
+              href="{{ url_for('static', path='/favicon.ico') }}">
+        <link href="{{ url_for('static', path='/output.css') }}" rel="stylesheet">
+    </head>
+    <body class="overflow-x-hidden">
+        <div class="drawer">
+            <input id="nav-drawer" type="checkbox" class="drawer-toggle" />
+            <div class="drawer-content flex flex-col h-screen justify-between">
+                <div class="navbar bg-base-200">
+                    <div class="container mx-auto px-4 flex items-center gap-2">
+                        <!-- Hamburger: mobile only -->
+                        <label for="nav-drawer"
+                               class="btn btn-ghost btn-sm md:hidden"
+                               aria-label="Open menu">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </label>
+                        <h1 class="text-lg md:text-xl font-bold whitespace-nowrap">Mortgage Calculator</h1>
+                        <!-- Inline nav: desktop only -->
+                        <nav class="hidden md:flex items-center gap-1 mr-auto ml-2">
+                            <a href="/"
+                               class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
+                                Home
+                            </a>
+                            <a href="/amortization"
+                               class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path.startswith('/amortization') %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
+                                Amortization
+                            </a>
+                            <a href="/buy-vs-rent"
+                               class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
+                                Buy vs Rent
+                            </a>
+                        </nav>
+                    </div>
                 </div>
+                <main class="mb-auto">
+                    <div class="container mx-auto px-4">
+                        {% block content %}{% endblock %}
+                    </div>
+                </main>
+                <footer class="footer sm:footer-horizontal footer-center bg-base-300 text-base-content p-4">
+                    <aside class="flex gap-4 text-sm opacity-70">
+                        <span>Version: {{ version }} ({{ git_commit }})</span>
+                        <span class="opacity-40">|</span>
+                        <span>Up since: <span id="restart-time" data-utc="{{ restart_time }}">{{ restart_time }}</span></span>
+                    </aside>
+                </footer>
             </div>
-            <main class="mb-auto">
-                <div class="container mx-auto px-4">
-                    {% block content %}{% endblock %}
-                </div>
-            </main>
-            <footer class="footer sm:footer-horizontal footer-center bg-base-300 text-base-content p-4">
-                <aside class="flex gap-4 text-sm opacity-70">
-                    <span>Version: {{ version }} ({{ git_commit }})</span>
-                    <span class="opacity-40">|</span>
-                    <span>Up since: <span id="restart-time" data-utc="{{ restart_time }}">{{ restart_time }}</span></span>
+            <!-- drawer-content -->
+            <!-- Mobile drawer side panel -->
+            <div class="drawer-side z-50">
+                <label for="nav-drawer" aria-label="Close menu" class="drawer-overlay"></label>
+                <aside class="bg-base-200 min-h-full w-56 flex flex-col p-4 gap-1">
+                    <p class="text-xs font-semibold uppercase opacity-50 px-2 mb-2">Navigation</p>
+                    <a href="/"
+                       class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
+                        Home
+                    </a>
+                    <a href="/amortization"
+                       class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path.startswith('/amortization') %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
+                        Amortization
+                    </a>
+                    <a href="/buy-vs-rent"
+                       class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
+                        Buy vs Rent
+                    </a>
                 </aside>
-            </footer>
-        </div><!-- drawer-content -->
-
-    <!-- Mobile drawer side panel -->
-    <div class="drawer-side z-50">
-        <label for="nav-drawer" aria-label="Close menu" class="drawer-overlay"></label>
-        <aside class="bg-base-200 min-h-full w-56 flex flex-col p-4 gap-1">
-            <p class="text-xs font-semibold uppercase opacity-50 px-2 mb-2">Navigation</p>
-            <a href="/"
-               class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
-                Home
-            </a>
-            <a href="/amortization"
-               class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path.startswith('/amortization') %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
-                Amortization
-            </a>
-            <a href="/buy-vs-rent"
-               class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
-                Buy vs Rent
-            </a>
-        </aside>
-    </div>
-</div><!-- drawer -->
-
-    {% block scripts %}{% endblock %}
-
-    <script>
+            </div>
+        </div>
+        <!-- drawer -->
+        {% block scripts %}{% endblock %}
+        <script>
         document.addEventListener('DOMContentLoaded', function() {
             const restartEl = document.getElementById('restart-time');
             if (restartEl) {
@@ -88,6 +98,6 @@
                 }
             }
         });
-    </script>
-</body>
+        </script>
+    </body>
 </html>

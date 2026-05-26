@@ -1,308 +1,426 @@
 {% extends "base.html" %}
 {% from "_loans_panel.html" import loans_panel %}
-
 {% block title %}Buy vs Rent — Mortgage Calculator{% endblock %}
-
 {% block content %}
-<div class="py-4 flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
-
-    {# Left column: ~1/3 — hidden on mobile, transparent wrapper on desktop #}
-    <div class="hidden lg:contents">
-        {{ loans_panel('bvr-loans-tbody', 'bvr-loans-empty') }}
-    </div>
-
-    {# Right column: ~2/3 #}
-    <div class="flex-1 flex flex-col min-h-0 bg-base-200 rounded">
-
-        {# Header: loan name + action buttons #}
-        <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 flex-wrap gap-y-1">
-            <h2 class="text-xl font-bold tracking-wide text-base-content/80" id="bvr-loan-name"></h2>
-            <span id="bvr-arm-badge" class="hidden badge badge-sm badge-outline text-base-content/60"></span>
-            <button type="button" class="btn btn-sm btn-outline shrink-0 lg:hidden"
-                    onclick="document.getElementById('bvr-select-loan-modal').showModal()">
-                Change
-            </button>
-            <button type="button" class="btn btn-sm btn-outline shrink-0"
-                    onclick="document.getElementById('bvr-assumptions-modal').showModal()">
-                Assumptions
-            </button>
-            {# ARM scenario control. Hidden for Fixed loans. #}
-            <div id="bvr-scenario-control" class="hidden ml-auto flex items-center gap-1 text-xs">
-                <span class="text-base-content/40 uppercase tracking-wide font-semibold mr-1">Scenario</span>
-                <div class="join" role="tablist">
-                    <button type="button" class="join-item btn btn-xs" data-scenario="worst">Worst</button>
-                    <button type="button" class="join-item btn btn-xs" data-scenario="flat">Flat</button>
-                    <button type="button" class="join-item btn btn-xs" data-scenario="best">Best</button>
-                    <button type="button" class="join-item btn btn-xs btn-active" data-scenario="compare">Compare</button>
+    <div class="py-4 flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
+        {# Left column: ~1/3 — hidden on mobile, transparent wrapper on desktop #}
+        <div class="hidden lg:contents">{{ loans_panel('bvr-loans-tbody', 'bvr-loans-empty') }}</div>
+        {# Right column: ~2/3 #}
+        <div class="flex-1 flex flex-col min-h-0 bg-base-200 rounded">
+            {# Header: loan name + action buttons #}
+            <div class="bg-base-200 rounded-t px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 flex-wrap gap-y-1">
+                <h2 class="text-xl font-bold tracking-wide text-base-content/80"
+                    id="bvr-loan-name"></h2>
+                <span id="bvr-arm-badge"
+                      class="hidden badge badge-sm badge-outline text-base-content/60"></span>
+                <button type="button"
+                        class="btn btn-sm btn-outline shrink-0 lg:hidden"
+                        onclick="document.getElementById('bvr-select-loan-modal').showModal()">Change</button>
+                <button type="button"
+                        class="btn btn-sm btn-outline shrink-0"
+                        onclick="document.getElementById('bvr-assumptions-modal').showModal()">Assumptions</button>
+                {# ARM scenario control. Hidden for Fixed loans. #}
+                <div id="bvr-scenario-control"
+                     class="hidden ml-auto flex items-center gap-1 text-xs">
+                    <span class="text-base-content/40 uppercase tracking-wide font-semibold mr-1">Scenario</span>
+                    <div class="join" role="tablist">
+                        <button type="button" class="join-item btn btn-xs" data-scenario="worst">Worst</button>
+                        <button type="button" class="join-item btn btn-xs" data-scenario="flat">Flat</button>
+                        <button type="button" class="join-item btn btn-xs" data-scenario="best">Best</button>
+                        <button type="button"
+                                class="join-item btn btn-xs btn-active"
+                                data-scenario="compare">Compare</button>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        {# Placeholder: no loan selected #}
-        <div id="bvr-placeholder" class="flex-1 flex items-center justify-center text-base-content/30 text-sm">
-            Select a loan to begin the buy vs rent analysis.
-        </div>
-
-        {# Analysis panel: shown when a loan is selected #}
-        <div id="bvr-analysis" class="hidden flex-1 flex flex-col min-h-0">
-
-            {# ── Break-even callout ──────────────────────────────────────── #}
-            <div id="bvr-callout" class="px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 text-sm min-h-[2.25rem]">
-                <span id="bvr-callout-icon" class="text-base-content/30 font-bold w-4 text-center shrink-0"></span>
-                <span id="bvr-callout-text" class="text-base-content/50">Enter a down payment and monthly rent to see the analysis.</span>
+            {# Placeholder: no loan selected #}
+            <div id="bvr-placeholder"
+                 class="flex-1 flex items-center justify-center text-base-content/30 text-sm">
+                Select a loan to begin the buy vs rent analysis.
             </div>
-
-            {# ── Year-by-Year Table + Chart ───────────────────────────────── #}
-            <div class="flex-1 overflow-y-auto">
-
-                {# ── Net Worth Chart + legend (floating on sm+, in-flow on mobile) ── #}
-                <div id="bvr-chart-legend-host" class="relative shrink-0 border-b border-base-300">
-                <div id="bvr-chart-wrap" class="relative aspect-video" style="min-height:220px">
-                    <svg id="bvr-chart" style="position:absolute;inset:0;width:100%;height:100%;display:block"></svg>
-                </div>{# /bvr-chart-wrap #}
-                    {# Legend: stationary below chart on &lt;640px; draggable overlay on sm+ #}
-                    <div id="bvr-legend-panel" class="hidden max-sm:relative max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-t max-sm:border-base-300 max-sm:bg-base-200 max-sm:shadow-none sm:absolute sm:z-10 sm:min-w-[13rem] sm:rounded-lg sm:border sm:border-base-content/15 sm:bg-base-200/80 sm:shadow-xl sm:select-none sm:bottom-4 sm:right-4 transition-opacity duration-200">
-                        <div id="bvr-legend-header" class="flex items-center justify-between px-3 py-1.5 max-sm:cursor-default sm:cursor-grab border-b border-base-content/15 max-sm:rounded-none sm:rounded-t-lg gap-3">
-                            <span class="flex items-center gap-1.5 text-xs text-base-content/50 whitespace-nowrap">
-                                <svg id="bvr-legend-drag-icon" xmlns="http://www.w3.org/2000/svg" class="hidden sm:block w-3.5 h-3.5 text-base-content/35" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                                    <path d="M5 9l-3 3 3 3"/>
-                                    <path d="M9 5l3-3 3 3"/>
-                                    <path d="M15 19l-3 3-3-3"/>
-                                    <path d="M19 9l3 3-3 3"/>
-                                    <path d="M2 12h20"/>
-                                    <path d="M12 2v20"/>
-                                </svg>
-                                <span id="bvr-legend-year-label" title="Drag to reposition">Year <span id="bvr-legend-year" class="font-medium text-base-content/70">—</span></span>
-                            </span>
-                            <button id="bvr-legend-toggle" class="btn btn-ghost btn-xs px-1 min-h-0 h-5 leading-none text-base-content/40 hover:text-base-content" title="Minimize">
-                                <svg id="bvr-legend-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                            </button>
+            {# Analysis panel: shown when a loan is selected #}
+            <div id="bvr-analysis" class="hidden flex-1 flex flex-col min-h-0">
+                {# ── Break-even callout ──────────────────────────────────────── #}
+                <div id="bvr-callout"
+                     class="px-4 py-2 border-b border-base-300 shrink-0 flex items-center gap-2 text-sm min-h-[2.25rem]">
+                    <span id="bvr-callout-icon"
+                          class="text-base-content/30 font-bold w-4 text-center shrink-0"></span>
+                    <span id="bvr-callout-text" class="text-base-content/50">Enter a down payment and monthly rent to see the analysis.</span>
+                </div>
+                {# ── Year-by-Year Table + Chart ───────────────────────────────── #}
+                <div class="flex-1 overflow-y-auto">
+                    {# ── Net Worth Chart + legend (floating on sm+, in-flow on mobile) ── #}
+                    <div id="bvr-chart-legend-host"
+                         class="relative shrink-0 border-b border-base-300">
+                        <div id="bvr-chart-wrap"
+                             class="relative aspect-video"
+                             style="min-height:220px">
+                            <svg id="bvr-chart"
+                                 style="position:absolute;
+                                        inset:0;
+                                        width:100%;
+                                        height:100%;
+                                        display:block">
+                            </svg>
                         </div>
-                        <div id="bvr-legend-body" class="px-3 py-2 text-xs">
-                            <div id="bvr-legend-pin-badge" class="hidden text-base-content/40 mb-1.5 text-[11px]">(pinned — click to release)</div>
-                            {# 2-col grid: dot+label | value #}
-                            <div class="grid gap-x-3 gap-y-1.5" style="grid-template-columns: auto 1fr">
-                                {# Home Value — first; toggled to display:contents by JS when down payment is set #}
-                                <div id="bvr-legend-home-value" style="display:none">
-                                    <span class="text-base-content/50 whitespace-nowrap pl-3.5">Home Value</span>
-                                    <span id="bvr-legend-home-value-display" class="tabular-nums text-right text-base-content/60">—</span>
-                                </div>
-                                {# Worst buyer row — visible only in compare mode #}
-                                <div id="bvr-legend-buy-worst-row" class="flex items-center gap-1.5" style="display:none">
-                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#1d4ed8"/></svg>
-                                    <span class="text-base-content/70 whitespace-nowrap">Buyer NW (worst)</span>
-                                </div>
-                                <span id="bvr-legend-buy-worst" class="font-semibold tabular-nums text-right" style="display:none">—</span>
-                                {# Flat / single-mode buyer row #}
-                                <div class="flex items-center gap-1.5">
-                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#60a5fa"/></svg>
-                                    <span id="bvr-legend-buy-label" class="text-base-content/70 whitespace-nowrap">Buyer NW</span>
-                                </div>
-                                <span id="bvr-legend-buy" class="font-semibold tabular-nums text-right">—</span>
-                                {# Best buyer row — visible only in compare mode #}
-                                <div id="bvr-legend-buy-best-row" class="flex items-center gap-1.5" style="display:none">
-                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#7dd3fc"/></svg>
-                                    <span class="text-base-content/70 whitespace-nowrap">Buyer NW (best)</span>
-                                </div>
-                                <span id="bvr-legend-buy-best" class="font-semibold tabular-nums text-right" style="display:none">—</span>
-                                <div class="flex items-center gap-1.5">
-                                    <svg width="10" height="10" class="shrink-0"><circle cx="5" cy="5" r="4.5" fill="#4ade80"/></svg>
-                                    <span class="text-base-content/70 whitespace-nowrap">Renter NW</span>
-                                </div>
-                                <span id="bvr-legend-rent" class="font-semibold tabular-nums text-right">—</span>
+                        {# /bvr-chart-wrap #}
+                        {# Legend: stationary below chart on &lt;640px; draggable overlay on sm+ #}
+                        <div id="bvr-legend-panel"
+                             class="hidden max-sm:relative max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-t max-sm:border-base-300 max-sm:bg-base-200 max-sm:shadow-none sm:absolute sm:z-10 sm:min-w-[13rem] sm:rounded-lg sm:border sm:border-base-content/15 sm:bg-base-200/80 sm:shadow-xl sm:select-none sm:bottom-4 sm:right-4 transition-opacity duration-200">
+                            <div id="bvr-legend-header"
+                                 class="flex items-center justify-between px-3 py-1.5 max-sm:cursor-default sm:cursor-grab border-b border-base-content/15 max-sm:rounded-none sm:rounded-t-lg gap-3">
+                                <span class="flex items-center gap-1.5 text-xs text-base-content/50 whitespace-nowrap">
+                                    <svg id="bvr-legend-drag-icon"
+                                         xmlns="http://www.w3.org/2000/svg"
+                                         class="hidden sm:block w-3.5 h-3.5 text-base-content/35"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path d="M5 9l-3 3 3 3" />
+                                        <path d="M9 5l3-3 3 3" />
+                                        <path d="M15 19l-3 3-3-3" />
+                                        <path d="M19 9l3 3-3 3" />
+                                        <path d="M2 12h20" />
+                                        <path d="M12 2v20" />
+                                    </svg>
+                                    <span id="bvr-legend-year-label" title="Drag to reposition">Year <span id="bvr-legend-year" class="font-medium text-base-content/70">—</span></span>
+                                </span>
+                                <button id="bvr-legend-toggle"
+                                        class="btn btn-ghost btn-xs px-1 min-h-0 h-5 leading-none text-base-content/40 hover:text-base-content"
+                                        title="Minimize">
+                                    <svg id="bvr-legend-chevron"
+                                         xmlns="http://www.w3.org/2000/svg"
+                                         class="w-3.5 h-3.5 transition-transform"
+                                         viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2.5"
+                                         stroke-linecap="round"
+                                         stroke-linejoin="round">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                </button>
                             </div>
-                            {# Advantage section — updates dynamically with hovered year #}
-                            <div id="bvr-legend-adv-section" class="mt-2 pt-1.5 border-t border-base-content/10">
-                                {# Single mode: one row #}
-                                <div id="bvr-legend-adv-single" class="flex justify-between items-center gap-2">
-                                    <span id="bvr-legend-adv-label" class="text-base-content/50 whitespace-nowrap text-[11px]">—</span>
-                                    <span id="bvr-legend-adv-val" class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                            <div id="bvr-legend-body" class="px-3 py-2 text-xs">
+                                <div id="bvr-legend-pin-badge"
+                                     class="hidden text-base-content/40 mb-1.5 text-[11px]">
+                                    (pinned — click to release)
                                 </div>
-                                {# Compare mode: worst + best breakdown #}
-                                <div id="bvr-legend-adv-range" style="display:none">
-                                    <div class="text-base-content/35 uppercase tracking-wide text-[10px] mb-1">Advantage</div>
-                                    <div class="flex justify-between gap-2">
-                                        <span class="text-base-content/50 text-[11px] whitespace-nowrap">Worst case</span>
-                                        <span id="bvr-legend-adv-worst" class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                {# 2-col grid: dot+label | value #}
+                                <div class="grid gap-x-3 gap-y-1.5"
+                                     style="grid-template-columns: auto 1fr">
+                                    {# Home Value — first; toggled to display:contents by JS when down payment is set #}
+                                    <div id="bvr-legend-home-value" style="display:none">
+                                        <span class="text-base-content/50 whitespace-nowrap pl-3.5">Home Value</span>
+                                        <span id="bvr-legend-home-value-display"
+                                              class="tabular-nums text-right text-base-content/60">—</span>
                                     </div>
-                                    <div class="flex justify-between gap-2">
-                                        <span class="text-base-content/50 text-[11px] whitespace-nowrap">Best case</span>
-                                        <span id="bvr-legend-adv-best" class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                    {# Worst buyer row — visible only in compare mode #}
+                                    <div id="bvr-legend-buy-worst-row"
+                                         class="flex items-center gap-1.5"
+                                         style="display:none">
+                                        <svg width="10" height="10" class="shrink-0">
+                                            <circle cx="5" cy="5" r="4.5" fill="#1d4ed8" />
+                                        </svg>
+                                        <span class="text-base-content/70 whitespace-nowrap">Buyer NW (worst)</span>
                                     </div>
-                                </div>
-                            </div>
-                            {# At-payoff section #}
-                            <div class="mt-2 pt-1.5 border-t border-base-content/10">
-                                <div class="flex items-center justify-between mb-1">
-                                    <div class="text-base-content/35 uppercase tracking-wide text-[10px]">At payoff</div>
-                                    <button id="bvr-payoff-toggle" class="btn btn-ghost btn-xs px-1 min-h-0 h-5 leading-none text-base-content/35 hover:text-base-content" title="Expand">
-                                        <svg id="bvr-payoff-chevron" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform" style="transform:rotate(-90deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                                    </button>
-                                </div>
-                                <div id="bvr-payoff-body" style="display:none">
-                                <div class="grid gap-x-3 gap-y-1" style="grid-template-columns: auto 1fr">
-                                    {# Home Value first — toggled to display:contents when down payment is set #}
-                                    <div id="bvr-legend-home-value-payoff-wrap" style="display:none">
-                                        <span class="text-base-content/50 whitespace-nowrap">Home Value</span>
-                                        <span id="bvr-legend-home-value-payoff" class="tabular-nums text-right text-base-content/60">—</span>
-                                    </div>
-                                    {# Best buyer row — compare mode only #}
-                                    <div id="bvr-legend-buy-best-payoff-wrap" style="display:none">
-                                        <span class="text-base-content/50 whitespace-nowrap">Buyer NW (best)</span>
-                                        <span id="bvr-legend-buy-best-payoff" class="tabular-nums text-right text-base-content/60">—</span>
-                                    </div>
+                                    <span id="bvr-legend-buy-worst"
+                                          class="font-semibold tabular-nums text-right"
+                                          style="display:none">—</span>
                                     {# Flat / single-mode buyer row #}
-                                    <span id="bvr-legend-buy-flat-payoff-label" class="text-base-content/50 whitespace-nowrap">Buyer NW</span>
-                                    <span id="bvr-legend-buy-payoff" class="tabular-nums text-right text-base-content/60">—</span>
-                                    {# Worst buyer row — compare mode only #}
-                                    <div id="bvr-legend-buy-worst-payoff-wrap" style="display:none">
-                                        <span class="text-base-content/50 whitespace-nowrap">Buyer NW (worst)</span>
-                                        <span id="bvr-legend-buy-worst-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <svg width="10" height="10" class="shrink-0">
+                                            <circle cx="5" cy="5" r="4.5" fill="#60a5fa" />
+                                        </svg>
+                                        <span id="bvr-legend-buy-label"
+                                              class="text-base-content/70 whitespace-nowrap">Buyer NW</span>
                                     </div>
-                                    <span class="text-base-content/50 whitespace-nowrap">Renter NW</span>
-                                    <span id="bvr-legend-rent-payoff" class="tabular-nums text-right text-base-content/60">—</span>
+                                    <span id="bvr-legend-buy" class="font-semibold tabular-nums text-right">—</span>
+                                    {# Best buyer row — visible only in compare mode #}
+                                    <div id="bvr-legend-buy-best-row"
+                                         class="flex items-center gap-1.5"
+                                         style="display:none">
+                                        <svg width="10" height="10" class="shrink-0">
+                                            <circle cx="5" cy="5" r="4.5" fill="#7dd3fc" />
+                                        </svg>
+                                        <span class="text-base-content/70 whitespace-nowrap">Buyer NW (best)</span>
+                                    </div>
+                                    <span id="bvr-legend-buy-best"
+                                          class="font-semibold tabular-nums text-right"
+                                          style="display:none">—</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <svg width="10" height="10" class="shrink-0">
+                                            <circle cx="5" cy="5" r="4.5" fill="#4ade80" />
+                                        </svg>
+                                        <span class="text-base-content/70 whitespace-nowrap">Renter NW</span>
+                                    </div>
+                                    <span id="bvr-legend-rent" class="font-semibold tabular-nums text-right">—</span>
                                 </div>
+                                {# Advantage section — updates dynamically with hovered year #}
+                                <div id="bvr-legend-adv-section"
+                                     class="mt-2 pt-1.5 border-t border-base-content/10">
+                                    {# Single mode: one row #}
+                                    <div id="bvr-legend-adv-single"
+                                         class="flex justify-between items-center gap-2">
+                                        <span id="bvr-legend-adv-label"
+                                              class="text-base-content/50 whitespace-nowrap text-[11px]">—</span>
+                                        <span id="bvr-legend-adv-val"
+                                              class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                    </div>
+                                    {# Compare mode: worst + best breakdown #}
+                                    <div id="bvr-legend-adv-range" style="display:none">
+                                        <div class="text-base-content/35 uppercase tracking-wide text-[10px] mb-1">Advantage</div>
+                                        <div class="flex justify-between gap-2">
+                                            <span class="text-base-content/50 text-[11px] whitespace-nowrap">Worst case</span>
+                                            <span id="bvr-legend-adv-worst"
+                                                  class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <span class="text-base-content/50 text-[11px] whitespace-nowrap">Best case</span>
+                                            <span id="bvr-legend-adv-best"
+                                                  class="font-semibold tabular-nums text-right text-[11px]">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {# At-payoff section #}
+                                <div class="mt-2 pt-1.5 border-t border-base-content/10">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="text-base-content/35 uppercase tracking-wide text-[10px]">At payoff</div>
+                                        <button id="bvr-payoff-toggle"
+                                                class="btn btn-ghost btn-xs px-1 min-h-0 h-5 leading-none text-base-content/35 hover:text-base-content"
+                                                title="Expand">
+                                            <svg id="bvr-payoff-chevron"
+                                                 xmlns="http://www.w3.org/2000/svg"
+                                                 class="w-3.5 h-3.5 transition-transform"
+                                                 style="transform:rotate(-90deg)"
+                                                 viewBox="0 0 24 24"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 stroke-width="2.5"
+                                                 stroke-linecap="round"
+                                                 stroke-linejoin="round">
+                                                <path d="M6 9l6 6 6-6" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div id="bvr-payoff-body" style="display:none">
+                                        <div class="grid gap-x-3 gap-y-1" style="grid-template-columns: auto 1fr">
+                                            {# Home Value first — toggled to display:contents when down payment is set #}
+                                            <div id="bvr-legend-home-value-payoff-wrap" style="display:none">
+                                                <span class="text-base-content/50 whitespace-nowrap">Home Value</span>
+                                                <span id="bvr-legend-home-value-payoff"
+                                                      class="tabular-nums text-right text-base-content/60">—</span>
+                                            </div>
+                                            {# Best buyer row — compare mode only #}
+                                            <div id="bvr-legend-buy-best-payoff-wrap" style="display:none">
+                                                <span class="text-base-content/50 whitespace-nowrap">Buyer NW (best)</span>
+                                                <span id="bvr-legend-buy-best-payoff"
+                                                      class="tabular-nums text-right text-base-content/60">—</span>
+                                            </div>
+                                            {# Flat / single-mode buyer row #}
+                                            <span id="bvr-legend-buy-flat-payoff-label"
+                                                  class="text-base-content/50 whitespace-nowrap">Buyer NW</span>
+                                            <span id="bvr-legend-buy-payoff"
+                                                  class="tabular-nums text-right text-base-content/60">—</span>
+                                            {# Worst buyer row — compare mode only #}
+                                            <div id="bvr-legend-buy-worst-payoff-wrap" style="display:none">
+                                                <span class="text-base-content/50 whitespace-nowrap">Buyer NW (worst)</span>
+                                                <span id="bvr-legend-buy-worst-payoff"
+                                                      class="tabular-nums text-right text-base-content/60">—</span>
+                                            </div>
+                                            <span class="text-base-content/50 whitespace-nowrap">Renter NW</span>
+                                            <span id="bvr-legend-rent-payoff"
+                                                  class="tabular-nums text-right text-base-content/60">—</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>{# /bvr-legend-panel #}
-                </div>{# /bvr-chart-legend-host #}
-
-                <div class="overflow-x-auto">
-                <table class="w-full text-xs">
-                    <thead class="sticky top-0 bg-base-200 z-10">
-                        <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
-                            <th class="pl-4 pr-2 py-2 text-left font-medium whitespace-nowrap">Yr</th>
-                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Home Value</th>
-                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buy/mo</th>
-                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buy Equity</th>
-                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buyer NW</th>
-                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Rent/mo</th>
-                            <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Renter NW</th>
-                            <th class="pl-2 pr-4 py-2 text-right font-medium whitespace-nowrap">Buy − Rent</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bvr-tbody"></tbody>
-                </table>
+                        {# /bvr-legend-panel #}
+                    </div>
+                    {# /bvr-chart-legend-host #}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead class="sticky top-0 bg-base-200 z-10">
+                                <tr class="border-b border-base-300 text-xs text-base-content/50 uppercase tracking-wide">
+                                    <th class="pl-4 pr-2 py-2 text-left font-medium whitespace-nowrap">Yr</th>
+                                    <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Home Value</th>
+                                    <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buy/mo</th>
+                                    <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buy Equity</th>
+                                    <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Buyer NW</th>
+                                    <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Rent/mo</th>
+                                    <th class="px-2 py-2 text-right font-medium whitespace-nowrap">Renter NW</th>
+                                    <th class="pl-2 pr-4 py-2 text-right font-medium whitespace-nowrap">Buy − Rent</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bvr-tbody">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-        </div>{# /bvr-analysis #}
-
-    </div>{# /right panel #}
-
-</div>
-
-{# Assumptions modal (mobile + desktop) #}
-<dialog id="bvr-assumptions-modal" class="modal">
-    <div class="modal-box max-w-sm w-[calc(100%-2rem)]">
-        <h3 class="font-bold text-lg mb-4">Assumptions</h3>
-        <div class="space-y-3">
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Home &amp; Buying</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="bvr-down-payment" class="text-base-content/70 font-medium whitespace-nowrap">Down Payment</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="bvr-down-payment" class="grow min-w-0" placeholder="0">
-                    </label>
-
-                    <label for="bvr-appreciation" class="text-base-content/70 font-medium whitespace-nowrap">Appreciation</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="bvr-appreciation" class="grow min-w-0" min="0" max="20" step="0.1" placeholder="3">
-                        <span class="text-base-content/60">%/yr</span>
-                    </label>
-
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Rent</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="bvr-monthly-rent" class="text-base-content/70 font-medium whitespace-nowrap">Monthly Rent</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="bvr-monthly-rent" class="grow min-w-0" placeholder="0">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-
-                    <label for="bvr-security-deposit" class="text-base-content/70 font-medium whitespace-nowrap">Security Deposit</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="text" inputmode="numeric" id="bvr-security-deposit" class="grow min-w-0" placeholder="0">
-                    </label>
-
-                    <label for="bvr-rent-increase" class="text-base-content/70 font-medium whitespace-nowrap">Rent Increase</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="bvr-rent-increase" class="grow min-w-0" min="0" max="20" step="0.1" placeholder="3">
-                        <span class="text-base-content/60">%/yr</span>
-                    </label>
-
-                    <label for="bvr-renter-insurance" class="text-base-content/70 font-medium whitespace-nowrap">Renter Insurance</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <span class="text-base-content/60">$</span>
-                        <input type="number" id="bvr-renter-insurance" class="grow min-w-0" min="0" step="1" placeholder="15">
-                        <span class="text-base-content/60 text-xs">/mo</span>
-                    </label>
-                </div>
-            </fieldset>
-
-            <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
-                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Taxes &amp; Investment</legend>
-                <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
-                    <label for="bvr-marginal-rate" class="text-base-content/70 font-medium whitespace-nowrap">Marginal Rate</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="bvr-marginal-rate" class="grow min-w-0" min="0" max="60" step="1" placeholder="22">
-                        <span class="text-base-content/60">%</span>
-                    </label>
-
-                    <span class="text-base-content/70 font-medium whitespace-nowrap">Itemize</span>
-                    <label class="flex items-center gap-2 cursor-pointer py-0.5">
-                        <input type="checkbox" id="bvr-itemize" class="checkbox checkbox-sm">
-                        <span class="text-sm text-base-content/50">Deduct interest</span>
-                    </label>
-
-                    <label for="bvr-invest-return" class="text-base-content/70 font-medium whitespace-nowrap">Invest Return</label>
-                    <label class="input input-bordered input-sm flex items-center gap-1 w-full">
-                        <input type="number" id="bvr-invest-return" class="grow min-w-0" min="0" max="30" step="0.5" placeholder="7">
-                        <span class="text-base-content/60">%/yr</span>
-                    </label>
-                </div>
-                <p class="text-xs text-base-content/30 mt-2 leading-tight">
-                    Down payment + monthly savings invested at return rate.
+            {# /bvr-analysis #}
+        </div>
+        {# /right panel #}
+    </div>
+    {# Assumptions modal (mobile + desktop) #}
+    <dialog id="bvr-assumptions-modal" class="modal">
+        <div class="modal-box max-w-sm w-[calc(100%-2rem)]">
+            <h3 class="font-bold text-lg mb-4">Assumptions</h3>
+            <div class="space-y-3">
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Home &amp; Buying</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="bvr-down-payment"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Down Payment</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="bvr-down-payment"
+                                   class="grow min-w-0"
+                                   placeholder="0">
+                        </label>
+                        <label for="bvr-appreciation"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Appreciation</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="bvr-appreciation"
+                                   class="grow min-w-0"
+                                   min="0"
+                                   max="20"
+                                   step="0.1"
+                                   placeholder="3">
+                            <span class="text-base-content/60">%/yr</span>
+                        </label>
+                    </div>
+                </fieldset>
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Rent</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="bvr-monthly-rent"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Monthly Rent</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="bvr-monthly-rent"
+                                   class="grow min-w-0"
+                                   placeholder="0">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+                        <label for="bvr-security-deposit"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Security Deposit</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   id="bvr-security-deposit"
+                                   class="grow min-w-0"
+                                   placeholder="0">
+                        </label>
+                        <label for="bvr-rent-increase"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Rent Increase</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="bvr-rent-increase"
+                                   class="grow min-w-0"
+                                   min="0"
+                                   max="20"
+                                   step="0.1"
+                                   placeholder="3">
+                            <span class="text-base-content/60">%/yr</span>
+                        </label>
+                        <label for="bvr-renter-insurance"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Renter Insurance</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <span class="text-base-content/60">$</span>
+                            <input type="number"
+                                   id="bvr-renter-insurance"
+                                   class="grow min-w-0"
+                                   min="0"
+                                   step="1"
+                                   placeholder="15">
+                            <span class="text-base-content/60 text-xs">/mo</span>
+                        </label>
+                    </div>
+                </fieldset>
+                <fieldset class="border border-base-content/20 rounded-lg px-3 pb-3 pt-1">
+                    <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-base-content/40">Taxes &amp; Investment</legend>
+                    <div class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-2 gap-y-3 items-center mt-1">
+                        <label for="bvr-marginal-rate"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Marginal Rate</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="bvr-marginal-rate"
+                                   class="grow min-w-0"
+                                   min="0"
+                                   max="60"
+                                   step="1"
+                                   placeholder="22">
+                            <span class="text-base-content/60">%</span>
+                        </label>
+                        <span class="text-base-content/70 font-medium whitespace-nowrap">Itemize</span>
+                        <label class="flex items-center gap-2 cursor-pointer py-0.5">
+                            <input type="checkbox" id="bvr-itemize" class="checkbox checkbox-sm">
+                            <span class="text-sm text-base-content/50">Deduct interest</span>
+                        </label>
+                        <label for="bvr-invest-return"
+                               class="text-base-content/70 font-medium whitespace-nowrap">Invest Return</label>
+                        <label class="input input-bordered input-sm flex items-center gap-1 w-full">
+                            <input type="number"
+                                   id="bvr-invest-return"
+                                   class="grow min-w-0"
+                                   min="0"
+                                   max="30"
+                                   step="0.5"
+                                   placeholder="7">
+                            <span class="text-base-content/60">%/yr</span>
+                        </label>
+                    </div>
+                    <p class="text-xs text-base-content/30 mt-2 leading-tight">Down payment + monthly savings invested at return rate.</p>
+                </fieldset>
+            </div>
+            <div class="modal-action mt-4">
+                <form method="dialog">
+                    <button class="btn btn-primary w-full">Done</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    <dialog id="bvr-select-loan-modal" class="modal lg:hidden">
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-3">Select a Loan</h3>
+            <div id="bvr-mobile-loans-list" class="space-y-1 max-h-72 overflow-y-auto">
+                <p class="text-xs text-base-content/40 py-2">
+                    No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
                 </p>
-            </fieldset>
+            </div>
+            <div class="modal-action mt-3">
+                <form method="dialog">
+                    <button class="btn btn-ghost btn-sm">Close</button>
+                </form>
+            </div>
         </div>
-        <div class="modal-action mt-4">
-            <form method="dialog"><button class="btn btn-primary w-full">Done</button></form>
-        </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-
-<dialog id="bvr-select-loan-modal" class="modal lg:hidden">
-    <div class="modal-box max-w-sm">
-        <h3 class="font-bold text-lg mb-3">Select a Loan</h3>
-        <div id="bvr-mobile-loans-list" class="space-y-1 max-h-72 overflow-y-auto">
-            <p class="text-xs text-base-content/40 py-2">
-                No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
-            </p>
-        </div>
-        <div class="modal-action mt-3">
-            <form method="dialog"><button class="btn btn-ghost btn-sm">Close</button></form>
-        </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
-
-{% include "_loan_detail_modal.html" %}
-{% include "_preview_panel.html" %}
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    {% include "_loan_detail_modal.html" %}
+    {% include "_preview_panel.html" %}
 {% endblock %}
-
 {% block scripts %}
-<script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
-<script src="{{ url_for('static', path='/mortgage-loan-detail.js') }}"></script>
-<script>
+    <script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
+    <script src="{{ url_for('static', path='/mortgage-loan-detail.js') }}"></script>
+    <script>
     // STORAGE_KEY / SELECTED_KEY / loadLoans / escHtml / applyCommaFormat /
     // fmtDollarField defined in mortgage-common.js
     // fmtPct defined in mortgage-loan-detail.js
@@ -1599,9 +1717,8 @@
     maybeAutoFillSecurityDeposit();
     renderLoans();
 
-</script>
-
-<style>
+    </script>
+    <style>
     #bvr-assumptions-modal .modal-box {
         max-height: calc(100dvh - 5em);
         overflow-y: auto;
@@ -1609,5 +1726,5 @@
     #bvr-legend-panel.bvr-legend-dimmed {
         opacity: 0.45;
     }
-</style>
+    </style>
 {% endblock %}
