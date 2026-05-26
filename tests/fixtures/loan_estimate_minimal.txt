@@ -1,0 +1,12 @@
+Loan Estimate
+Product    7-Year/6-Month ARM
+Loan Amount    $400,000
+Interest Rate    6.500 %
+Loan Term    30 years
+Margin    2.750 %
+Caps    2 / 1 / 5
+Lender Credits    $2,500
+Total Loan Costs (A + B + C)    $8,000
+Property Taxes    $500
+Homeowner's Insurance    $150
+HOA Dues    $0

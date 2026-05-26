@@ -419,6 +419,7 @@
 {% endblock %}
 {% block scripts %}
     <script src="{{ url_for('static', path='/mortgage-common.js') }}"></script>
+    <script src="{{ url_for('static', path='/mortgage-bvr.js') }}"></script>
     <script src="{{ url_for('static', path='/mortgage-loan-detail.js') }}"></script>
     <script>
     // STORAGE_KEY / SELECTED_KEY / loadLoans / escHtml / applyCommaFormat /
@@ -795,122 +796,7 @@
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Calculation Engine
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    function runBvR(loan, a, scenario) {
-        scenario = scenario || 'intro_forever';
-        var termMonths   = Math.round((loan.term_years || 30) * 12);
-        // Per-month annual rate (%) schedule. For Fixed loans this is flat.
-        // For ARM loans the rate steps at each adjustment month and P&I
-        // is recast below to match standard servicing behavior.
-        var rates        = buildRateSchedule(loan, scenario);
-        var lastRate     = rates[0];
-        var pi           = computePayment(loan.loan_amount, lastRate, termMonths);
-        var propTaxMo    = loan.prop_tax || 0;           // stored as $/mo
-        var hoaMo        = loan.hoa || 0;                // stored as $/mo
-        var insuranceMo  = (loan.insurance || 0) / 12;  // stored as $/yr → convert to $/mo
-        var closing      = loan.closing || 0;
-
-        var downPayment  = a.downPayment  || 0;
-        var homeValue0   = loan.loan_amount + downPayment;
-        var appRateMo    = a.appreciation  / 100 / 12;
-
-        var rent0        = a.monthlyRent     || 0;
-        var secDep       = a.securityDeposit || 0;
-        var rentIncrYr   = a.rentIncrease    / 100;
-        var renterInsMo  = a.renterInsurance || 0;
-
-        var margRate     = a.marginalRate / 100;
-        var itemize      = !!a.itemize;
-        var investRMo    = a.investReturn / 100 / 12;
-
-        // Both parties start with the same cash: C0 = down payment + closing costs.
-        // Buyer converts it immediately to housing equity.
-        // Renter invests it (minus security deposit which is illiquid).
-        var C0        = downPayment + closing;
-        var portfolio = C0 - secDep;  // renter's starting investable capital
-
-        var balance     = loan.loan_amount;
-        var hv          = homeValue0;
-        var buyCumCost  = C0;  // cumulative cash outflows (upfront + ongoing non-equity costs)
-
-        var yearly      = [];
-        var breakEvenYear = null;
-        var lastBuyNW   = null, lastRentNW = null;
-
-        for (var m = 1; m <= termMonths; m++) {
-            // ── Amortization ──────────────────────────────────────────────
-            var rateThis = rates[m - 1];
-            if (rateThis !== lastRate) {
-                // ARM adjustment: recast P&I over the remaining months
-                pi = computePayment(balance, rateThis, termMonths - (m - 1));
-                lastRate = rateThis;
-            }
-            var monthlyRate = rateThis / 100 / 12;
-            var intPortion  = balance * monthlyRate;
-            var prinPortion = Math.max(0, pi - intPortion);
-            balance = Math.max(0, balance - prinPortion);
-
-            // ── Home appreciation ─────────────────────────────────────────
-            hv *= (1 + appRateMo);
-
-            // ── Current rent (annual compounding, fractional year index) ──
-            var rentNow = rent0 * Math.pow(1 + rentIncrYr, (m - 1) / 12);
-
-            // ── Monthly buy cost (non-equity outflows) ────────────────────
-            // Tax saving applies only when itemizing (mortgage interest deduction).
-            var taxSave  = itemize ? intPortion * margRate : 0;
-            var buyMoCost = pi + propTaxMo + hoaMo + insuranceMo - taxSave;
-            buyCumCost   += buyMoCost;
-
-            // ── Monthly rent cost ─────────────────────────────────────────
-            var rentMoCost = rentNow + renterInsMo;
-
-            // ── Renter portfolio ──────────────────────────────────────────
-            // Each month: compound existing portfolio, then deposit the difference
-            // between what the buyer paid (non-equity) and what the renter paid.
-            // Positive surplus → renter invests savings vs buyer. Negative → draw down.
-            var surplus = buyMoCost - rentMoCost;
-            portfolio   = portfolio * (1 + investRMo) + surplus;
-
-            // ── Net worth ─────────────────────────────────────────────────
-            // Buyer: liquidation value of home minus outstanding balance.
-            var saleNet = hv - balance;
-            var buyNW   = saleNet - buyCumCost;
-            // Renter: portfolio is the net wealth position (already net of initial C0 invested).
-            var rentNW  = portfolio;
-
-            if (breakEvenYear === null && buyNW > rentNW) {
-                breakEvenYear = Math.ceil(m / 12);
-            }
-
-            if (m % 12 === 0 || m === termMonths) {
-                yearly.push({
-                    year:      Math.ceil(m / 12),
-                    buyNW:     buyNW,
-                    rentNW:    rentNW,
-                    homeValue: hv,
-                    equity:    saleNet,
-                    portfolio: portfolio,
-                    buyMoCost: buyMoCost,
-                    rentMoCost: rentMoCost
-                });
-            }
-
-            lastBuyNW  = buyNW;
-            lastRentNW = rentNW;
-        }
-
-        return {
-            yearly:        yearly,
-            breakEvenYear: breakEvenYear,
-            termYears:     Math.ceil(termMonths / 12),
-            finalBuyNW:    lastBuyNW,
-            finalRentNW:   lastRentNW
-        };
-    }
+    // runBvR — see mortgage-bvr.js (loaded above)
 
     // ═══════════════════════════════════════════════════════════════════════════
     // SVG Chart Helpers
