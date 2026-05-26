@@ -3,8 +3,7 @@
 Usual operation:
 ```bash
 ./run.sh restart
-./run.sh psql
-./run.sh logs -f backups
+./run.sh logs -f app
 ./run.sh up --detach
 ./run.sh down
 ```

@@ -4,17 +4,8 @@ services:
       context: .
       args:
         GIT_COMMIT: "${GIT_COMMIT:-unknown}"
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: $POSTGRES_DB
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
     platform: linux/amd64
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   nginx:
     image: nginx:1.28.0-alpine
@@ -25,48 +16,3 @@ services:
     volumes:
       - "./nginx.conf:/etc/nginx/nginx.conf:ro"
     restart: unless-stopped
-
-  postgres:
-    image: postgres:17.4-alpine
-    platform: linux/amd64
-    environment:
-      POSTGRES_DB: $POSTGRES_DB
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "psql -U $POSTGRES_USER -d $POSTGRES_DB -c 'SELECT 1'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    # Install vim as default editor
-    command: >
-      sh -c "apk add --no-cache vim &&
-             docker-entrypoint.sh postgres"
-    restart: unless-stopped
-
-  backups:
-    image: postgres:17.4-alpine
-    platform: linux/amd64
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_DB: $POSTGRES_DB
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      LINODE_PAT: $LINODE_PAT
-    volumes:
-      - ./cronjobs/backup.sh:/etc/periodic/scripts/backup.sh
-      - ./cronjobs/backup-crontab:/etc/crontabs/root
-      - backup-data:/backups
-    command: >
-      sh -c "apk add --no-cache jq curl openssl file coreutils &&
-             chmod u+x /etc/periodic/scripts/backup.sh &&
-             crond -f -l 0"
-    restart: unless-stopped
-    depends_on:
-      - postgres
-
-volumes:
-  postgres-data:
-  backup-data:

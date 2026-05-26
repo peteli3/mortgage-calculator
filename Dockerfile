@@ -31,7 +31,7 @@ RUN pip install --no-cache-dir --upgrade -r /home/requirements.txt
 # Set app version and git commit
 ARG GIT_COMMIT
 ENV GIT_COMMIT=${GIT_COMMIT:-unknown}
-ENV VERSION=0.1
+ENV VERSION=1.0
 
 CMD ["fastapi", "run", "app/main.py", \
     "--proxy-headers", \

@@ -5,8 +5,6 @@
     <title>{% block title %}Mortgage Calculator{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='/favicon.ico') }}">
     <link href="{{ url_for('static', path='/output.css') }}" rel="stylesheet">
-    <script src="{{ url_for('static', path='/htmx.org@2.0.4/dist/htmx.min.js') }}"></script>
-    <script src="{{ url_for('static', path='/htmx-ext-json-enc@2.0.1/json-enc.js') }}"></script>
 </head>
 <body class="overflow-x-hidden">
     <div class="drawer">
@@ -73,79 +71,9 @@
     </div>
 </div><!-- drawer -->
 
-    <dialog id="loginModal" class="modal">
-        <div class="modal-box max-w-md text-left">
-            <h3 class="font-bold text-lg mb-2" id="loginModalTitle">Login</h3>
-            <p class="mb-2">
-                <span id="logged-in-as">{{ logged_in_as }}</span>
-            </p>
-            <form id="loginForm" class="flex flex-col gap-3">
-                <div class="flex flex-col gap-3 w-full mb-3">
-                    <div class="flex items-center gap-3">
-                        <label for="username" class="w-24">Username:</label>
-                        <input type="text"
-                               id="username"
-                               name="username"
-                               placeholder="Username"
-                               required
-                               class="input input-bordered w-full">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label for="password" class="w-24">Password:</label>
-                        <input type="password"
-                               id="password"
-                               name="password"
-                               placeholder="Password"
-                               required
-                               class="input input-bordered w-full">
-                    </div>
-                </div>
-                <div class="flex flex-col items-center gap-3">
-                    <div class="flex gap-3">
-                        <button type="submit"
-                                hx-post="/login"
-                                hx-target="#logged-in-as"
-                                hx-ext="json-enc"
-                                hx-on::after-request="handleLoginResponse(event)"
-                                class="btn btn-primary">Login</button>
-                        <button type="button"
-                                hx-post="/logout"
-                                hx-target="#logged-in-as"
-                                hx-ext="json-enc"
-                                class="btn btn-error">Logout</button>
-                    </div>
-                </div>
-            </form>
-            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="loginModal.close()">✕</button>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
-
     {% block scripts %}{% endblock %}
 
     <script>
-        function showLoginModal() {
-            const loginModal = document.getElementById('loginModal');
-            if (loginModal) {
-                loginModal.showModal();
-            }
-        }
-
-        function handleLoginResponse(event) {
-            if (event.detail.successful) {
-                const isHomePage = window.location.pathname === '/' || window.location.pathname === '';
-                if (!isHomePage) {
-                    const loginModal = document.getElementById('loginModal');
-                    if (loginModal) {
-                        loginModal.close();
-                    }
-                    location.reload();
-                }
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             const restartEl = document.getElementById('restart-time');
             if (restartEl) {
@@ -158,18 +86,6 @@
                         timeZoneName: 'short'
                     });
                 }
-            }
-
-            // Set login modal title based on current page
-            const isHomePage = window.location.pathname === '/' || window.location.pathname === '';
-            const loginModalTitle = document.getElementById('loginModalTitle');
-            if (loginModalTitle && !isHomePage) {
-                loginModalTitle.textContent = 'Login Required';
-            }
-            // Check if we should show the login modal based on URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('show_login')) {
-                showLoginModal();
             }
         });
     </script>
