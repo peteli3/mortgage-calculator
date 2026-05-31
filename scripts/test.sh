@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+# Run regression tests (pytest + deno). Same venv bootstrap as lint.sh.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 VENV="$ROOT/.venv"
 
@@ -32,9 +33,7 @@ require() {
         exit 1
     }
 }
-require ruff
-require mypy
-require djlint
+require pytest
 require deno
 
 failed=0
@@ -43,12 +42,7 @@ run() {
     "$@" || failed=1
 }
 
-run ruff check app
-run ruff format --check app
-run mypy app
-run djlint app/templates
-run djlint --check app/templates
-run deno lint app/static
-run deno fmt --check app/static
+run pytest
+run deno test --allow-read tests/js
 
 exit "$failed"

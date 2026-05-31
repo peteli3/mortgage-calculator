@@ -140,7 +140,10 @@ mortgage-calculator/
   docker-compose.yaml
   Dockerfile
   requirements.txt
-  run.sh
+  scripts/
+    lint.sh
+    run.sh
+    test.sh
   tailwind.config.js
 
 Guidelines:
@@ -177,7 +180,7 @@ Avoid misleading precision.
 Default behavior is to read and edit files in the project. Do not take any other action on the host system unless explicitly asked.
 
 Do not:
-- run `docker compose up`, `./run.sh`, uvicorn, or any dev server
+- run `docker compose up`, `./scripts/run.sh`, uvicorn, or any dev server
 - open or interact with the app in a browser
 - run integration or end-to-end flows that require the stack to be running
 - run shell commands speculatively (e.g. `ls`, `find`, `cat`, `grep` via shell) — use the provided file search and read tools instead

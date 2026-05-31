@@ -2,8 +2,8 @@
 
 Usual operation:
 ```bash
-./run.sh restart
-./run.sh logs -f app
-./run.sh up --detach
-./run.sh down
+./scripts/run.sh restart
+./scripts/run.sh logs -f app
+./scripts/run.sh up --detach
+./scripts/run.sh down
 ```

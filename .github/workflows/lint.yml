@@ -20,4 +20,4 @@ jobs:
         run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run lint
-        run: ./lint.sh
+        run: ./scripts/lint.sh
