@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -5,7 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from .internal.common import templates, VERSION, GIT_COMMIT, RESTART_TIME
 from .routers.mortgage import router as mortgage_router
 
-app = FastAPI()
+# root_path lets the app sit behind the reverse proxy at /mortgage-calculator;
+# Starlette's url_for / request.url_for prepend it to generated URLs.
+app = FastAPI(root_path=os.getenv("ROOT_PATH", ""))
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(mortgage_router)
 

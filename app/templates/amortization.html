@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Amortization — Mortgage Calculator{% endblock %}
-{% from "_loans_panel.html" import loans_panel %}
+{% from "_loans_panel.html" import loans_panel with context %}
 {% block content %}
     <div class="py-4 flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
         {# Left column: ~1/3 — hidden on mobile, transparent wrapper on desktop #}
@@ -449,7 +449,7 @@
             <h3 class="font-bold text-lg mb-3">Select a Loan</h3>
             <div id="mobile-loans-list" class="space-y-1 max-h-72 overflow-y-auto">
                 <p class="text-xs text-base-content/40 py-2">
-                    No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.
+                    No loans saved. Add loans on the <a href="{{ request.scope.root_path }}/" class="underline">Homepage</a>.
                 </p>
             </div>
             <div class="modal-action mt-3">
@@ -937,7 +937,7 @@
         if (mobileList) {
             mobileList.innerHTML = '';
             if (loans.length === 0) {
-                mobileList.innerHTML = '<p class="text-xs text-base-content/40 py-2">No loans saved. Add loans on the <a href="/" class="underline">Homepage</a>.</p>';
+                mobileList.innerHTML = '<p class="text-xs text-base-content/40 py-2">No loans saved. Add loans on the <a href="' + window.ROOT_PATH + '/" class="underline">Homepage</a>.</p>';
             } else {
                 loans.forEach(function(loan) {
                     var div = document.createElement('div');
@@ -985,7 +985,7 @@
         });
 
         localStorage.setItem(ACTIVE_TAB_KEY, tab);
-        history.replaceState(null, '', '/amortization/' + tab);
+        history.replaceState(null, '', window.ROOT_PATH + '/amortization/' + tab);
 
         if (tab === 'schedule') {
             renderExtraPaymentsList();

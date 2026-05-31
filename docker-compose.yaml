@@ -6,13 +6,17 @@ services:
         GIT_COMMIT: "${GIT_COMMIT:-unknown}"
     platform: linux/amd64
     restart: unless-stopped
+    environment:
+      ROOT_PATH: /mortgage-calculator
+      # Trust nginx's X-Forwarded-Proto so url_for() emits https:// links.
+      # nginx connects from a Docker bridge IP, not 127.0.0.1, and the app
+      # port is unpublished (only reachable via nginx), so trusting all is safe.
+      FORWARDED_ALLOW_IPS: "*"
+    networks:
+      mortgage-net:
+        aliases:
+          - mortgage-app
 
-  nginx:
-    image: nginx:1.28.0-alpine
-    platform: linux/amd64
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "./nginx.conf:/etc/nginx/nginx.conf:ro"
-    restart: unless-stopped
+networks:
+  mortgage-net:
+    external: true

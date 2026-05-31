@@ -1799,7 +1799,7 @@
             setStatus('Parsing PDF\u2026', 'text-info animate-pulse');
             var fd = new FormData();
             fd.append('file', file);
-            fetch('/mortgage/parse-loan-estimate', { method: 'POST', body: fd })
+            fetch(window.ROOT_PATH + '/mortgage/parse-loan-estimate', { method: 'POST', body: fd })
                 .then(function(r) {
                     if (!r.ok) return r.json().then(function(d) { throw new Error(d.detail || 'Server error'); });
                     return r.json();

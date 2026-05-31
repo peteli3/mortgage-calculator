@@ -14,6 +14,7 @@
               type="image/x-icon"
               href="{{ url_for('static', path='/favicon.ico') }}">
         <link href="{{ url_for('static', path='/output.css') }}" rel="stylesheet">
+        <script>window.ROOT_PATH = "{{ request.scope.root_path }}";</script>
     </head>
     <body class="overflow-x-hidden">
         <div class="drawer">
@@ -36,15 +37,15 @@
                         <h1 class="text-lg md:text-xl font-bold whitespace-nowrap">Mortgage Calculator</h1>
                         <!-- Inline nav: desktop only -->
                         <nav class="hidden md:flex items-center gap-1 mr-auto ml-2">
-                            <a href="/"
+                            <a href="{{ request.scope.root_path }}/"
                                class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
                                 Home
                             </a>
-                            <a href="/amortization"
+                            <a href="{{ request.scope.root_path }}/amortization"
                                class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path.startswith('/amortization') %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
                                 Amortization
                             </a>
-                            <a href="/buy-vs-rent"
+                            <a href="{{ request.scope.root_path }}/buy-vs-rent"
                                class="px-3 py-1 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content{% else %}border-transparent hover:border-base-content/40{% endif %}">
                                 Buy vs Rent
                             </a>
@@ -70,15 +71,15 @@
                 <label for="nav-drawer" aria-label="Close menu" class="drawer-overlay"></label>
                 <aside class="bg-base-200 min-h-full w-56 flex flex-col p-4 gap-1">
                     <p class="text-xs font-semibold uppercase opacity-50 px-2 mb-2">Navigation</p>
-                    <a href="/"
+                    <a href="{{ request.scope.root_path }}/"
                        class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path == '/' %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
                         Home
                     </a>
-                    <a href="/amortization"
+                    <a href="{{ request.scope.root_path }}/amortization"
                        class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path.startswith('/amortization') %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
                         Amortization
                     </a>
-                    <a href="/buy-vs-rent"
+                    <a href="{{ request.scope.root_path }}/buy-vs-rent"
                        class="px-3 py-2 rounded text-sm font-medium border {% if request.url.path == '/buy-vs-rent' %}border-base-content bg-base-300{% else %}border-transparent hover:bg-base-300{% endif %}">
                         Buy vs Rent
                     </a>
